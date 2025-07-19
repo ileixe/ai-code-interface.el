@@ -167,10 +167,13 @@ treat that comment as the requirement and generate prompt."
                       "\nFile: " buffer-file-name)))
         (ai-prompt--insert-prompt final-prompt)))
      (function-name
-      (let ((prompt (aider-read-string "Code change instruction: "
-                                       (format "Change function %s:\n\nFile: %s" 
-                                               function-name (or buffer-file-name "Unknown")))))
-        (ai-prompt--insert-prompt prompt))))))
+      (let* ((prompt-label (format "Change function %s:" function-name))
+             (initial-prompt (aider-read-string prompt-label ""))
+             (final-prompt
+              (concat initial-prompt
+                      "\nFunction: " function-name
+                      "\nFile: " buffer-file-name)))
+        (ai-prompt--insert-prompt final-prompt)))))
 
 ;;;###autoload
 (defun ai-prompt-implement-todo ()
