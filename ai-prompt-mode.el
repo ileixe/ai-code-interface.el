@@ -12,11 +12,13 @@
 (require 'org)
 (require 'which-func)
 (require 'magit)
+(require 'transient)
 
 (defvar yas-snippet-dirs)
 
 (declare-function yas-load-directory "yasnippet" (dir))
 (declare-function yas-minor-mode "yasnippet")
+(declare-function aider-read-string "aider-core" (prompt &optional initial-input candidate-list))
 
 ;;;###autoload
 (defcustom ai-prompt-file-name ".ai.prompt.org"
@@ -29,6 +31,7 @@ This is the file name without path."
 ;;;###autoload
 (defvar ai-prompt-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-c C-a") #'ai-prompt-menu-dispatch)
     map)
   "Keymap for AI Prompt Mode.")
 
@@ -76,11 +79,12 @@ If file doesn't exist, create it with sample prompt."
   "Insert PROMPT-TEXT into the AI prompt file."
   (let ((prompt-file (ai-prompt--get-ai-prompt-file-path)))
     (if prompt-file
-        (save-excursion
-          (with-current-buffer (find-file-noselect prompt-file)
+        (let ((buffer (find-file-other-window prompt-file)))
+          (with-current-buffer buffer
             (goto-char (point-max))
             (unless (bolp)
               (insert "\n"))
+            (insert "\n")
             (insert "* " (format-time-string "%Y-%m-%d %H:%M:%S") "\n")
             (insert prompt-text)
             (unless (bolp)
@@ -132,12 +136,15 @@ treat that comment as the requirement and generate prompt."
      ((and (not region-active)
            (ai-prompt--is-comment-line line-text))
       (let* ((req (ai-prompt--extract-comment-content line-text))
-             (prompt
+             (default-prompt
               (if function-name
                   (format "In function %s, change code according to requirement: %s\n\nFile: %s"
                           function-name req (or buffer-file-name "Unknown"))
-                (format "Change code according to requirement: %s\n\nFile: %s"
-                        req (or buffer-file-name "Unknown")))))
+                (format "Change code according to requirement: %s"
+                        req (or buffer-file-name "Unknown"))))
+             (initial-prompt (aider-read-string "Code change instruction: " default-prompt))
+             (prompt (if buffer-file-name
+                         (concat initial-prompt "\nFile: " buffer-file-name))))
         (save-excursion
           (delete-region (line-beginning-position)
                          (min (point-max) (1+ (line-end-position)))))
@@ -149,17 +156,18 @@ treat that comment as the requirement and generate prompt."
      (region-active
       (let* ((region-text (buffer-substring-no-properties
                            (region-beginning) (region-end)))
-             (prompt
+             (default-prompt
               (if function-name
                   (format "Change the following code block (in function %s):\n\n%s\n\nFile: %s"
                           function-name region-text (or buffer-file-name "Unknown"))
                 (format "Change the following code block:\n\n%s\n\nFile: %s"
-                        region-text (or buffer-file-name "Unknown")))))
+                        region-text (or buffer-file-name "Unknown"))))
+             (prompt (aider-read-string "Code change instruction: " default-prompt)))
         (ai-prompt--insert-prompt prompt)))
      (function-name
-      (let ((prompt
-             (format "Change function %s:\n\nFile: %s"
-                     function-name (or buffer-file-name "Unknown"))))
+      (let ((prompt (aider-read-string "Code change instruction: "
+                                       (format "Change function %s:\n\nFile: %s" 
+                                               function-name (or buffer-file-name "Unknown")))))
         (ai-prompt--insert-prompt prompt))))))
 
 ;;;###autoload
@@ -173,22 +181,27 @@ Otherwise implement comments for the entire current file."
   (when buffer-file-name
     (let* ((current-line (string-trim (thing-at-point 'line t)))
            (is-comment (ai-prompt--is-comment-line current-line))
+           (function-name (which-function))
            (region-text (when (region-active-p)
                          (buffer-substring-no-properties
                           (region-beginning)
                           (region-end))))
-           (prompt
+           (initial-input
             (cond
              (region-text
-              (format "Please implement this code block:\n\n%s\n\nFile: %s"
+              (format "Please implement this code block:\n\n%s\n\nFile: %s" 
                       region-text (or buffer-file-name "Unknown")))
              (is-comment
               (format "Please implement this comment:\n\n%s\n\nFile: %s"
                       current-line (or buffer-file-name "Unknown")))
+             (function-name
+              (format "Please implement TODO comments in function %s\n\nFile: %s"
+                      function-name (or buffer-file-name "Unknown")))
              (t
-              (error "No specific context found. Please select a region, place cursor on a comment line, or use ai-prompt-function-or-region-change instead")))))
-      (when prompt
-        (ai-prompt--insert-prompt prompt)))))
+              (format "Please implement TODO comments in file %s\n\nFile: %s"
+                      (file-name-nondirectory buffer-file-name) (or buffer-file-name "Unknown")))))
+           (prompt (aider-read-string "TODO implementation instruction: " initial-input)))
+      (ai-prompt--insert-prompt prompt))))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
@@ -208,6 +221,17 @@ Special commands:
 ;;;###autoload
 (add-to-list 'auto-mode-alist
              `(,(concat "/" (regexp-quote ai-prompt-file-name) "\'") . ai-prompt-mode))
+
+;;;###autoload
+(transient-define-prefix ai-prompt-menu ()
+  "Transient menu for AI Prompt Mode interactive functions."
+  ["AI Prompt Commands"
+   ("o" "Open prompt file" ai-prompt-open-prompt-file)
+   ("c" "Change function/region" ai-prompt-function-or-region-change)
+   ("t" "Implement TODO" ai-prompt-implement-todo)])
+
+;;;###autoload
+(global-set-key (kbd "C-c p") #'ai-prompt-menu)
 
 (provide 'ai-prompt-mode)
 
