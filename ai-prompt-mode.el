@@ -42,7 +42,7 @@ If file doesn't exist, create it with sample prompt."
   (interactive)
   (let* ((git-root (magit-toplevel))
          (prompt-file (when git-root
-                       (expand-file-name ai-prompt-file-name git-root))))
+                        (expand-file-name ai-prompt-file-name git-root))))
     (if prompt-file
         (progn
           (find-file-other-window prompt-file)
@@ -61,13 +61,13 @@ If file doesn't exist, create it with sample prompt."
   (condition-case nil
       (when (require 'yasnippet nil t)
         (let ((snippet-dir (expand-file-name "snippets"
-                                           (file-name-directory (file-truename (locate-library "ai-prompt-mode")))))
-          (when (file-directory-p snippet-dir)
-            (unless (boundp 'yas-snippet-dirs)
-              (setq yas-snippet-dirs nil))
-            (add-to-list 'yas-snippet-dirs snippet-dir t)
-            (ignore-errors (yas-load-directory snippet-dir)))))
-    (error nil)))) ;; Suppress all errors
+                                             (file-name-directory (file-truename (locate-library "ai-prompt-mode")))))
+              (when (file-directory-p snippet-dir)
+                (unless (boundp 'yas-snippet-dirs)
+                  (setq yas-snippet-dirs nil))
+                (add-to-list 'yas-snippet-dirs snippet-dir t)
+                (ignore-errors (yas-load-directory snippet-dir)))))
+        (error nil)))) ;; Suppress all errors
 
 (defun ai-prompt--get-ai-prompt-file-path ()
   "Get the path to the AI prompt file in the current git repository."
@@ -100,9 +100,9 @@ ignoring leading whitespace."
   (when comment-start
     (let ((comment-str (string-trim-right comment-start)))
       (string-match-p (concat "^[ \t]*"
-                             (regexp-quote comment-str)
-                             "+")
-                     (string-trim-left line)))))
+                              (regexp-quote comment-str)
+                              "+")
+                      (string-trim-left line)))))
 
 (defun ai-prompt--extract-comment-content (comment-text)
   "Extract the actual content from COMMENT-TEXT, removing comment markers."
@@ -129,32 +129,12 @@ Additionally, if cursor is on a standalone comment line (and no region),
 treat that comment as the requirement and generate prompt."
   (interactive)
   (let* ((function-name (which-function))
-         (region-active (region-active-p))
-         (line-text    (string-trim (thing-at-point 'line t))))
+         (region-active (region-active-p)))
     (cond
-     ;; 1) comment-line requirement
-     ((and (not region-active)
-           (ai-prompt--is-comment-line line-text))
-      (let* ((req (ai-prompt--extract-comment-content line-text))
-             (prompt-label
-              (if function-name
-                  (format "Change code in function %s:" function-name)
-                "Change code instruction:"))
-             (initial-prompt (aider-read-string prompt-label req))
-             (final-prompt
-              (concat initial-prompt
-                      (when function-name
-                        (format "\nFunction: %s" function-name))
-                      (when buffer-file-name
-                        (format "\nFile: %s" buffer-file-name))))
-        (save-excursion
-          (delete-region (line-beginning-position)
-                         (min (point-max) (1+ (line-end-position)))))
-        (ai-prompt--insert-prompt final-prompt))))
-     ;; 2) nothing selected
+     ;; 1) nothing selected
      ((not (or region-active function-name))
       (message "No function or region selected."))
-     ;; 3) region or function
+     ;; 2) region or function
      (region-active
       (let* ((region-text (buffer-substring-no-properties (region-beginning) (region-end)))
              (prompt-label
@@ -169,7 +149,8 @@ treat that comment as the requirement and generate prompt."
                         (format "\nFunction: %s" function-name))
                       (when buffer-file-name
                         (format "\nFile: %s" buffer-file-name))))
-        (ai-prompt--insert-prompt final-prompt))))
+             (ai-prompt--insert-prompt final-prompt))))
+     ;; 3) function
      (function-name
       (let* ((prompt-label (format "Change function %s:" function-name))
              (initial-prompt (aider-read-string prompt-label ""))
@@ -178,7 +159,7 @@ treat that comment as the requirement and generate prompt."
                       (format "\nFunction: %s" function-name)
                       (when buffer-file-name
                         (format "\nFile: %s" buffer-file-name))))
-        (ai-prompt--insert-prompt final-prompt)))))))
+             (ai-prompt--insert-prompt final-prompt)))))))
 
 ;;;###autoload
 (defun ai-prompt-implement-todo ()
@@ -193,9 +174,9 @@ Otherwise implement comments for the entire current file."
            (is-comment (ai-prompt--is-comment-line current-line))
            (function-name (which-function))
            (region-text (when (region-active-p)
-                         (buffer-substring-no-properties
-                          (region-beginning)
-                          (region-end))))
+                          (buffer-substring-no-properties
+                           (region-beginning)
+                           (region-end))))
            (initial-input
             (cond
              (region-text
