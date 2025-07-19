@@ -1,0 +1,6 @@
+
+* Migrate aider-prompt-mode to ai-prompt-mode
+
+- Init ai-prompt-mode.el as a emacs package. Migrate /home/tninja/git/aider.el/aider-prompt-mode.el to ai-prompt-mode.el. Do not depend on aider-core. Keep yasnippets feature. Support repo specific file, default filename is .ai.prompt.org. Do not migrate any function related to send prompt to aider session. No keyword definition and highlight. No completion.
+
+- Migrate the aider-function-or-region-change and aider-implement-todo from /home/tninja/git/aider.el/aider-code-change.el to ai-prompt-mode.el. Instead of sending built up prompt to aider session, it insert the prompt to the end of ai prompt file. Ignore aider-todo-keyword-pair, only consider region-text and is-comment case in aider-implement-todo function

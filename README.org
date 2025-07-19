@@ -1,0 +1,18 @@
+
+* ai-prompt-mode
+
+It generate and manage prompt for AI coding.
+
+** Prompt generation
+
+- Using context information of current function, current file, etc
+- User ideas from [[https://github.com/tninja/aider.el][aider.el]], but have flexibility for other AI coding tools such as claude-code
+
+** Prompt management 
+
+- Repo specific
+- Similar to aider-prompt-mode in [[https://github.com/tninja/aider.el][aider.el]]
+
+** Prompt sending 
+
+- Use corresponding function from other AI coding tools, such as [[https://github.com/stevemolitor/claude-code.el][claude-code.el]]
