@@ -143,8 +143,10 @@ treat that comment as the requirement and generate prompt."
              (initial-prompt (aider-read-string prompt-label req))
              (final-prompt
               (concat initial-prompt
-                      "\nFunction: " (or function-name "Unknown")
-                      "\nFile: " (or buffer-file-name "Unknown"))))
+                      (when function-name
+                        (format "\nFunction: %s" function-name))
+                      (when buffer-file-name
+                        (format "\nFile: %s" buffer-file-name))))
         (save-excursion
           (delete-region (line-beginning-position)
                          (min (point-max) (1+ (line-end-position)))))
@@ -163,16 +165,19 @@ treat that comment as the requirement and generate prompt."
              (final-prompt
               (concat initial-prompt
                       "\n\n" region-text
-                      "\nFunction: " (or function-name "Unknown")
-                      "\nFile: " buffer-file-name)))
+                      (when function-name
+                        (format "\nFunction: %s" function-name))
+                      (when buffer-file-name
+                        (format "\nFile: %s" buffer-file-name))))
         (ai-prompt--insert-prompt final-prompt)))
      (function-name
       (let* ((prompt-label (format "Change function %s:" function-name))
              (initial-prompt (aider-read-string prompt-label ""))
              (final-prompt
               (concat initial-prompt
-                      "\nFunction: " function-name
-                      "\nFile: " buffer-file-name)))
+                      (format "\nFunction: %s" function-name)
+                      (when buffer-file-name
+                        (format "\nFile: %s" buffer-file-name))))
         (ai-prompt--insert-prompt final-prompt))))))
 
 ;;;###autoload
