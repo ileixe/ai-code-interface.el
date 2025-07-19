@@ -150,7 +150,7 @@ treat that comment as the requirement and generate prompt."
         (save-excursion
           (delete-region (line-beginning-position)
                          (min (point-max) (1+ (line-end-position)))))
-        (ai-prompt--insert-prompt final-prompt)))
+        (ai-prompt--insert-prompt final-prompt))))
      ;; 2) nothing selected
      ((not (or region-active function-name))
       (message "No function or region selected."))
@@ -169,7 +169,7 @@ treat that comment as the requirement and generate prompt."
                         (format "\nFunction: %s" function-name))
                       (when buffer-file-name
                         (format "\nFile: %s" buffer-file-name))))
-        (ai-prompt--insert-prompt final-prompt)))
+        (ai-prompt--insert-prompt final-prompt))))
      (function-name
       (let* ((prompt-label (format "Change function %s:" function-name))
              (initial-prompt (aider-read-string prompt-label ""))
@@ -178,7 +178,7 @@ treat that comment as the requirement and generate prompt."
                       (format "\nFunction: %s" function-name)
                       (when buffer-file-name
                         (format "\nFile: %s" buffer-file-name))))
-        (ai-prompt--insert-prompt final-prompt))))))
+        (ai-prompt--insert-prompt final-prompt)))))))
 
 ;;;###autoload
 (defun ai-prompt-implement-todo ()
