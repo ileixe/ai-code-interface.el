@@ -136,34 +136,36 @@ treat that comment as the requirement and generate prompt."
      ((and (not region-active)
            (ai-prompt--is-comment-line line-text))
       (let* ((req (ai-prompt--extract-comment-content line-text))
-             (default-prompt
+             (prompt-label
               (if function-name
-                  (format "In function %s, change code according to requirement: %s\n\nFile: %s"
-                          function-name req (or buffer-file-name "Unknown"))
-                (format "Change code according to requirement: %s"
-                        req (or buffer-file-name "Unknown"))))
-             (initial-prompt (aider-read-string "Code change instruction: " default-prompt))
-             (prompt (if buffer-file-name
-                         (concat initial-prompt "\nFile: " buffer-file-name))))
+                  (format "Change code in function %s:" function-name)
+                "Change code instruction:"))
+             (initial-prompt (aider-read-string prompt-label req))
+             (final-prompt
+              (concat initial-prompt
+                      "\nFunction: " (or function-name "Unknown")
+                      "\nFile: " (or buffer-file-name "Unknown"))))
         (save-excursion
           (delete-region (line-beginning-position)
                          (min (point-max) (1+ (line-end-position)))))
-        (ai-prompt--insert-prompt prompt)))
+        (ai-prompt--insert-prompt final-prompt)))
      ;; 2) nothing selected
      ((not (or region-active function-name))
       (message "No function or region selected."))
      ;; 3) region or function
      (region-active
-      (let* ((region-text (buffer-substring-no-properties
-                           (region-beginning) (region-end)))
-             (default-prompt
+      (let* ((region-text (buffer-substring-no-properties (region-beginning) (region-end)))
+             (prompt-label
               (if function-name
-                  (format "Change the following code block (in function %s):\n\n%s\n\nFile: %s"
-                          function-name region-text (or buffer-file-name "Unknown"))
-                (format "Change the following code block:\n\n%s\n\nFile: %s"
-                        region-text (or buffer-file-name "Unknown"))))
-             (prompt (aider-read-string "Code change instruction: " default-prompt)))
-        (ai-prompt--insert-prompt prompt)))
+                  (format "Change code in function %s:" function-name)
+                "Change selected code:"))
+             (initial-prompt (aider-read-string prompt-label region-text))
+             (final-prompt
+              (concat initial-prompt
+                      "\n\n" region-text
+                      "\nFunction: " (or function-name "Unknown")
+                      "\nFile: " buffer-file-name)))
+        (ai-prompt--insert-prompt final-prompt)))
      (function-name
       (let ((prompt (aider-read-string "Code change instruction: "
                                        (format "Change function %s:\n\nFile: %s" 
