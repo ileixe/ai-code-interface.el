@@ -173,7 +173,7 @@ treat that comment as the requirement and generate prompt."
               (concat initial-prompt
                       "\nFunction: " function-name
                       "\nFile: " buffer-file-name)))
-        (ai-prompt--insert-prompt final-prompt)))))
+        (ai-prompt--insert-prompt final-prompt))))))
 
 ;;;###autoload
 (defun ai-prompt-implement-todo ()
