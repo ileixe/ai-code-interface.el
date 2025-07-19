@@ -54,11 +54,11 @@ If file doesn't exist, create it with sample prompt."
       (when (require 'yasnippet nil t)
         (let ((snippet-dir (expand-file-name "snippets"
                                              (file-name-directory (file-truename (locate-library "ai-prompt-mode"))))))
-              (when (file-directory-p snippet-dir)
-                (unless (boundp 'yas-snippet-dirs)
-                  (setq yas-snippet-dirs nil))
-                (add-to-list 'yas-snippet-dirs snippet-dir t)
-                (ignore-errors (yas-load-directory snippet-dir))))
+          (when (file-directory-p snippet-dir)
+            (unless (boundp 'yas-snippet-dirs)
+              (setq yas-snippet-dirs nil))
+            (add-to-list 'yas-snippet-dirs snippet-dir t)
+            (ignore-errors (yas-load-directory snippet-dir))))
         (error nil)))) ;; Suppress all errors
 
 (defun ai-prompt--get-ai-prompt-file-path ()
@@ -77,7 +77,7 @@ If file doesn't exist, create it with sample prompt."
             (unless (bolp)
               (insert "\n"))
             (insert "\n")
-            (insert "* " (format-time-string "%Y-%m-%d %H:%M:%S") "\n")
+            (insert "** " (format-time-string "%Y-%m-%d %H:%M:%S") "\n")
             (insert prompt-text)
             (unless (bolp)
               (insert "\n"))
@@ -125,7 +125,12 @@ treat that comment as the requirement and generate prompt."
     (cond
      ;; 1) nothing selected
      ((not (or region-active function-name))
-      (message "No function or region selected."))
+      (let* ((initial-prompt (aider-read-string "Change code: " ""))
+             (final-prompt
+              (concat initial-prompt
+                      (when buffer-file-name
+                        (format "\nFile: %s" buffer-file-name)))))
+        (ai-prompt--insert-prompt final-prompt)))
      ;; 2) region or function
      (region-active
       (let* ((region-text (buffer-substring-no-properties (region-beginning) (region-end)))
@@ -144,13 +149,13 @@ treat that comment as the requirement and generate prompt."
         (ai-prompt--insert-prompt final-prompt)))
      ;; 3) function
      (function-name
-      (let* ((prompt-label (format "Change function %s:" function-name))
+      (let* ((prompt-label (format "Change function %s: " function-name))
              (initial-prompt (aider-read-string prompt-label ""))
              (final-prompt
               (concat initial-prompt
-                      (format "\nFunction: %s" function-name)
+                      (format "\nFunction: %s " function-name)
                       (when buffer-file-name
-                        (format "\nFile: %s" buffer-file-name)))))
+                        (format "\nFile: %s " buffer-file-name)))))
         (ai-prompt--insert-prompt final-prompt))))))
 
 ;;;###autoload
@@ -163,7 +168,6 @@ Otherwise implement comments for the entire current file."
   (interactive)
   (if (not buffer-file-name)
       (message "Error: buffer-file-name must be available")
-    (progn
     (let* ((current-line (string-trim (thing-at-point 'line t)))
            (is-comment (ai-prompt--is-comment-line current-line))
            (function-name (which-function))
@@ -175,18 +179,18 @@ Otherwise implement comments for the entire current file."
             (cond
              (region-text
               (format "Please implement this code block:\n\n%s\n\nFile: %s"
-                      region-text buffer-file-name)))
+                      region-text buffer-file-name))
              (is-comment
               (format "Please implement this comment:\n\n%s\n\nFile: %s"
-                      current-line buffer-file-name)))
+                      current-line buffer-file-name))
              (function-name
               (format "Please implement TODO comments in function %s\n\nFile: %s"
-                      function-name buffer-file-name)))
+                      function-name buffer-file-name))
              (t
               (format "Please implement TODO comments in file %s"
-                      (file-name-nondirectory buffer-file-name))))))
-           (prompt (aider-read-string "TODO implementation instruction: " initial-input))
-      (ai-prompt--insert-prompt prompt))
+                      (file-name-nondirectory buffer-file-name)))))
+           (prompt (aider-read-string "TODO implementation instruction: " initial-input)))
+      (ai-prompt--insert-prompt prompt))))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
