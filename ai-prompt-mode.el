@@ -319,14 +319,19 @@ The block is the text separated by blank lines. It trims leading/trailing whites
 (transient-define-prefix ai-prompt-menu ()
   "Transient menu for AI Prompt Mode interactive functions."
   ["AI Prompt Commands"
-   ("!" "Start AI CLI" ai-cli-start)
-   ("z" "Switch to AI CLI" ai-cli-switch-to-buffer)
-   ("p" "Open prompt file" ai-prompt-open-prompt-file)
-   ("c" "Code change (C-u: global)" ai-prompt-code-change)
-   ("i" "Implement TODO" ai-prompt-implement-todo)
-   ("q" "Ask question (C-u: global)" ai-prompt-ask-question)
-   ("b" "Send prompt block to AI" ai-prompt-send-block)
-   ("<SPC>" "Send command to AI" ai-prompt-send-command)])
+   ["AI CLI session"
+    ("!" "Start AI CLI" ai-cli-start)
+    ("z" "Switch to AI CLI" ai-cli-switch-to-buffer)
+    ("p" "Open prompt file" ai-prompt-open-prompt-file)
+    ("<SPC>" "Send command to AI" ai-prompt-send-command)
+    ]
+   ["AI Prompt Actions"
+    ("c" "Code change (C-u: global)" ai-prompt-code-change)
+    ("i" "Implement TODO" ai-prompt-implement-todo)
+    ("q" "Ask question (C-u: global)" ai-prompt-ask-question)
+    ("b" "Send prompt block to AI" ai-prompt-send-block)
+    ]
+   ])
 
 ;;;###autoload
 (global-set-key (kbd "C-c p") #'ai-prompt-menu)
