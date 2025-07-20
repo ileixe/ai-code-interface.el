@@ -21,6 +21,7 @@
 (declare-function aider-read-string "aider-core" (prompt &optional initial-input candidate-list))
 (declare-function claude-code-send-command "claude-code")
 (declare-function claude-code-switch-to-buffer "claude-code")
+(declare-function gptel-get-answer "gptel-assistant" (prompt))
 
 ;;;###autoload
 (defcustom ai-prompt-file-name ".ai.prompt.org"
@@ -34,6 +35,29 @@ This is the file name without path."
   "Whether to automatically send prompts to Claude Code when inserting them.
 If non-nil, call `claude-code-send-command` after inserting a prompt."
   :type 'boolean
+  :group 'ai-prompt)
+
+;;;###autoload
+(defcustom ai-prompt-use-gptel-headline nil
+  "Whether to use GPTel to generate headlines for prompt sections.
+If non-nil, call `gptel-get-answer` from gptel-assistant.el to generate
+headlines instead of using the current time string."
+  :type 'boolean
+  :group 'ai-prompt)
+
+;;;###autoload
+(defcustom ai-prompt-suffix nil
+  "Suffix text to append to prompts after a new line.
+If non-nil, this text will be appended to the end of each prompt
+with a newline separator."
+  :type '(choice (const nil) string)
+  :group 'ai-prompt)
+
+;;;###autoload
+(defcustom ai-cli-type 'claude-code
+  "Type of AI CLI service to use.
+Possible values are 'claude-code (default) or 'gemini-cli."
+  :type '(choice (const claude-code) (const gemini-cli))
   :group 'ai-prompt)
 
 ;;;###autoload
@@ -88,20 +112,50 @@ If file doesn't exist, create it with sample prompt."
             (unless (bolp)
               (insert "\n"))
             (insert "\n")
-            (insert "** " (format-time-string "%Y-%m-%d %H:%M:%S") "\n")
-            (insert prompt-text)
-            (unless (bolp)
-              (insert "\n"))
-            (save-buffer)
-            (message "Prompt added to %s" prompt-file)
-            (when ai-prompt-auto-send-to-ai
-              (ignore-errors (ai-send-command prompt-text))
-              (claude-code-switch-to-buffer))))
+            (insert "** ")
+            (if ai-prompt-use-gptel-headline
+                (condition-case nil
+                    (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
+                      (insert headline " ")
+                      (org-insert-time-stamp (current-time) t t))
+                  (error (org-insert-time-stamp (current-time) t t)))
+              (org-insert-time-stamp (current-time) t t))
+            (insert "\n")
+            (let ((full-prompt (if ai-prompt-suffix
+                                   (concat prompt-text "\n" ai-prompt-suffix "\n")
+                                 prompt-text)))
+              (insert full-prompt)
+              (unless (bolp)
+                (insert "\n"))
+              (save-buffer)
+              (message "Prompt added to %s" prompt-file)
+              (when ai-prompt-auto-send-to-ai
+                (ignore-errors (ai-send-command full-prompt))
+                (claude-code-switch-to-buffer)))))
       (message "Not in a git repository"))))
 
+(defun ai-cli-start ()
+  "Start the AI CLI service based on `ai-cli-type`."
+  (interactive)
+  (cond
+   ((eq ai-cli-type 'claude-code) (claude-code))
+   ((eq ai-cli-type 'gemini-cli) (gemini-cli))
+   (t (claude-code))))
+
+(defun ai-cli-switch-to-buffer ()
+  "Switch to the AI CLI buffer based on `ai-cli-type`."
+  (interactive)
+  (cond
+   ((eq ai-cli-type 'claude-code) (claude-code-switch-to-buffer))
+   ((eq ai-cli-type 'gemini-cli) (gemini-cli-switch-to-buffer))
+   (t (claude-code-switch-to-buffer))))
+
 (defun ai-send-command (prompt-text)
-  "Send PROMPT-TEXT to the AI service."
-  (claude-code-send-command prompt-text))
+  "Send PROMPT-TEXT to the AI service based on `ai-cli-type`."
+  (cond
+   ((eq ai-cli-type 'claude-code) (claude-code-send-command prompt-text))
+   ((eq ai-cli-type 'gemini-cli) (gemini-cli-send-command prompt-text))
+   (t (claude-code-send-command prompt-text))))
 
 (defun ai-prompt--is-comment-line (line)
   "Check if LINE is a comment line based on current buffer's comment syntax.
@@ -115,7 +169,7 @@ ignoring leading whitespace."
                       (string-trim-left line)))))
 
 ;;;###autoload
-(defun ai-prompt-code-change ()
+(defun ai-prompt-code-change (arg)
   "Generate prompt to change code under cursor or in selected region.
 If a region is selected, change that specific region.
 Otherwise, change the function under cursor.
@@ -132,7 +186,8 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
         (let* ((initial-prompt (aider-read-string "Change code: " ""))
                (final-prompt
                 (concat initial-prompt
-                        (format "\nFile: %s" buffer-file-name))))
+                        (format "\nFile: %s" buffer-file-name)
+                        "\nNote: Please make the code change described above.")))
           (ai-prompt--insert-prompt final-prompt)))
        ;; 2) region or function
        (region-active
@@ -144,10 +199,11 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
                (initial-prompt (aider-read-string prompt-label))
                (final-prompt
                 (concat initial-prompt
-                        "\n\n" region-text
+                        "\n" region-text
                         (when function-name
                           (format "\nFunction: %s" function-name))
-                        (format "\nFile: %s" buffer-file-name))))
+                        (format "\nFile: %s" buffer-file-name)
+                        "\nNote: Please make the code change described above.")))
           (ai-prompt--insert-prompt final-prompt)))
        ;; 3) function
        (function-name
@@ -156,7 +212,8 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
                (final-prompt
                 (concat initial-prompt
                         (format "\nFunction: %s " function-name)
-                        (format "\nFile: %s " buffer-file-name))))
+                        (format "\nFile: %s " buffer-file-name)
+                        "\nNote: Please make the code change described above.")))
           (ai-prompt--insert-prompt final-prompt)))))))
 
 ;;;###autoload
@@ -179,16 +236,16 @@ Otherwise implement comments for the entire current file."
            (initial-input
             (cond
              (region-text
-              (format "Please implement this code block:\n\n%s\n\nFile: %s"
-                      region-text buffer-file-name))
+              (format "Please implement this code block in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block."
+                      region-text))
              (is-comment
-              (format "Please implement this comment:\n\n%s\n\nFile: %s"
-                      current-line buffer-file-name))
+              (format "Please implement this comment in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment."
+                      current-line))
              (function-name
-              (format "Please implement TODO comments in function %s\n\nFile: %s"
-                      function-name buffer-file-name))
+              (format "Please implement all TODO in-place in function '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
+                      function-name))
              (t
-              (format "Please implement TODO comments in file %s"
+              (format "Please implement all TODO in-place in file '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
                       (file-name-nondirectory buffer-file-name)))))
            (prompt (aider-read-string "TODO implementation instruction: " initial-input)))
       (ai-prompt--insert-prompt prompt))))
@@ -218,12 +275,12 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
          (final-prompt
           (concat question
                   (when region-text
-                    (concat "\n\n" region-text))
+                    (concat "\n" region-text))
                   (when function-name
                     (format "\nFunction: %s" function-name))
                   (when buffer-file-name
                     (format "\nFile: %s" buffer-file-name))
-                  "\n\nNote: This is a question only - please do not modify the code.")))
+                  "\nNote: This is a question only - please do not modify the code.")))
     (ai-prompt--insert-prompt final-prompt)))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
@@ -249,12 +306,12 @@ Special commands:
 (transient-define-prefix ai-prompt-menu ()
   "Transient menu for AI Prompt Mode interactive functions."
   ["AI Prompt Commands"
-   ("!" "Start Claude Code" claude-code)
-   ("z" "Switch to Claude Code" claude-code-switch-to-buffer)
+   ("!" "Start AI CLI" ai-cli-start)
+   ("z" "Switch to AI CLI" ai-cli-switch-to-buffer)
    ("p" "Open prompt file" ai-prompt-open-prompt-file)
    ("c" "Code change" ai-prompt-code-change)
-   ("q" "Ask question" ai-prompt-ask-question)
-   ("t" "Implement TODO" ai-prompt-implement-todo)])
+   ("t" "Implement TODO" ai-prompt-implement-todo)
+   ("q" "Ask question" ai-prompt-ask-question)])
 
 ;;;###autoload
 (global-set-key (kbd "C-c p") #'ai-prompt-menu)
