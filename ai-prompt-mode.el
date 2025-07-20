@@ -115,7 +115,7 @@ If file doesn't exist, create it with sample prompt."
             (insert "** ")
             (if ai-prompt-use-gptel-headline
                 (condition-case nil
-                    (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
+                    (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
                       (insert headline " ")
                       (org-insert-time-stamp (current-time) t t))
                   (error (org-insert-time-stamp (current-time) t t)))
@@ -217,6 +217,9 @@ Otherwise implement comments for the entire current file."
     (let* ((current-line (string-trim (thing-at-point 'line t)))
            (is-comment (ai-prompt--is-comment-line current-line))
            (function-name (which-function))
+           (function-context (if function-name
+                                 (format "\nFunction: %s" function-name)
+                               ""))
            (region-text (when (region-active-p)
                           (buffer-substring-no-properties
                            (region-beginning)
@@ -224,11 +227,11 @@ Otherwise implement comments for the entire current file."
            (initial-input
             (cond
              (region-text
-              (format "Please implement this code block in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.\nFunction: %s\nFile: %s"
-                      region-text function-name buffer-file-name))
+              (format "Please implement this requirement comment block in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.%s\nFile: %s"
+                      region-text function-context buffer-file-name))
              (is-comment
-              (format "Please implement this comment in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.\nFunction: %s\nFile: %s"
-                      current-line function-name buffer-file-name))
+              (format "Please implement this requirement comment in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.%s\nFile: %s"
+                      current-line function-context buffer-file-name))
              (function-name
               (format "Please implement all TODO in-place in function '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
                       function-name))
