@@ -300,7 +300,7 @@ The block is the text separated by blank lines. It trims leading/trailing whites
          (trimmed-text (when block-text (string-trim block-text))))
     (if (and trimmed-text (string-match-p "\\S-" trimmed-text))
         (progn
-          (ai-send-command trimmed-text)
+          (ai-cli-send-command trimmed-text)
           (ai-cli-switch-to-buffer))
       (message "No text in the current block to send."))))
 
@@ -317,7 +317,8 @@ The block is the text separated by blank lines. It trims leading/trailing whites
    ("p" "Open prompt file" ai-prompt-open-prompt-file)
    ("c" "Code change (C-u: global)" ai-prompt-code-change)
    ("i" "Implement TODO" ai-prompt-implement-todo)
-   ("q" "Ask question (C-u: global)" ai-prompt-ask-question)])
+   ("q" "Ask question (C-u: global)" ai-prompt-ask-question)
+   ("b" "Send prompt block to AI" ai-prompt-send-block)])
 
 ;;;###autoload
 (global-set-key (kbd "C-c p") #'ai-prompt-menu)
