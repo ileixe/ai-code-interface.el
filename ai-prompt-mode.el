@@ -305,6 +305,13 @@ The block is the text separated by blank lines. It trims leading/trailing whites
       (message "No text in the current block to send."))))
 
 ;;;###autoload
+(defun ai-prompt-send-command ()
+  "Read a prompt from the user and send it to the AI service."
+  (interactive)
+  (when-let ((prompt (aider-read-string "Send to AI: ")))
+    (ai-prompt--insert-prompt prompt)))
+
+;;;###autoload
 (add-to-list 'auto-mode-alist
              `(,(concat "/" (regexp-quote ai-prompt-file-name) "\'") . ai-prompt-mode))
 
@@ -318,7 +325,8 @@ The block is the text separated by blank lines. It trims leading/trailing whites
    ("c" "Code change (C-u: global)" ai-prompt-code-change)
    ("i" "Implement TODO" ai-prompt-implement-todo)
    ("q" "Ask question (C-u: global)" ai-prompt-ask-question)
-   ("b" "Send prompt block to AI" ai-prompt-send-block)])
+   ("b" "Send prompt block to AI" ai-prompt-send-block)
+   ("<SPC>" "Send command to AI" ai-prompt-send-command)])
 
 ;;;###autoload
 (global-set-key (kbd "C-c p") #'ai-prompt-menu)
