@@ -178,47 +178,30 @@ If nothing is selected and no function context, prompts for general code change.
 Inserts the prompt into the AI prompt file and optionally sends to AI."
   (interactive "P")
   (if prefix-arg
-      (let ((initial-prompt (aider-read-string "Change code (no context): " "")))
-        (ai-prompt--insert-prompt initial-prompt))
-    (if (not buffer-file-name)
-        (message "Error: buffer-file-name must be available")
-      (let* ((function-name (which-function))
-             (region-active (region-active-p)))
-        (cond
-         ;; 1) nothing selected
-         ((not (or region-active function-name))
-          (let* ((initial-prompt (aider-read-string "Change code: " ""))
-                 (final-prompt
-                  (concat initial-prompt
-                          (format "\nFile: %s" buffer-file-name)
-                          "\nNote: Please make the code change described above.")))
-            (ai-prompt--insert-prompt final-prompt)))
-         ;; 2) region or function
-         (region-active
-          (let* ((region-text (buffer-substring-no-properties (region-beginning) (region-end)))
-                 (prompt-label
-                  (if function-name
-                      (format "Change code in function %s: " function-name)
-                    "Change selected code: "))
-                 (initial-prompt (aider-read-string prompt-label))
-                 (final-prompt
-                  (concat initial-prompt
-                          "\n" region-text
-                          (when function-name
-                            (format "\nFunction: %s" function-name))
-                          (format "\nFile: %s" buffer-file-name)
-                          "\nNote: Please make the code change described above.")))
-            (ai-prompt--insert-prompt final-prompt)))
-         ;; 3) function
-         (function-name
-          (let* ((prompt-label (format "Change function %s: " function-name))
-                 (initial-prompt (aider-read-string prompt-label ""))
-                 (final-prompt
-                  (concat initial-prompt
-                          (format "\nFunction: %s " function-name)
-                          (format "\nFile: %s " buffer-file-name)
-                          "\nNote: Please make the code change described above.")))
-            (ai-prompt--insert-prompt final-prompt))))))))
+      (let ((prompt (aider-read-string "Change code (no context): " "")))
+        (ai-prompt--insert-prompt prompt))
+    (unless buffer-file-name
+      (user-error "Error: buffer-file-name must be available"))
+    (let* ((function-name (which-function))
+           (region-active (region-active-p))
+           (region-text (when region-active
+                          (buffer-substring-no-properties (region-beginning) (region-end))))
+           (prompt-label
+            (cond (region-active
+                   (if function-name
+                       (format "Change code in function %s: " function-name)
+                     "Change selected code: "))
+                  (function-name
+                   (format "Change function %s: " function-name))
+                  (t "Change code: ")))
+           (initial-prompt (aider-read-string prompt-label ""))
+           (final-prompt
+            (concat initial-prompt
+                    (when region-text (concat "\n" region-text))
+                    (when function-name (format "\nFunction: %s" function-name))
+                    (format "\nFile: %s" buffer-file-name)
+                    "\nNote: Please make the code change described above.")))
+      (ai-prompt--insert-prompt final-prompt))))
 
 
 ;;;###autoload
@@ -256,37 +239,41 @@ Otherwise implement comments for the entire current file."
       (ai-prompt--insert-prompt prompt))))
 
 ;;;###autoload
-(defun ai-prompt-ask-question ()
+(defun ai-prompt-ask-question (prefix-arg)
   "Generate prompt to ask questions about specific code.
+With a prefix argument (C-u), prompt for a question without adding any context.
 If a region is selected, ask about that specific region.
 If cursor is in a function, ask about that function.
 Otherwise, ask a general question about the file.
 Inserts the prompt into the AI prompt file and optionally sends to AI."
-  (interactive)
-  (let* ((function-name (which-function))
-         (region-active (region-active-p))
-         (region-text (when region-active
-                        (buffer-substring-no-properties (region-beginning) (region-end))))
-         (prompt-label
-          (cond
-           (region-active
-            (if function-name
-                (format "Question about selected code in function %s: " function-name)
-              "Question about selected code: "))
-           (function-name
-            (format "Question about function %s: " function-name))
-           (t "General question: ")))
-         (question (aider-read-string prompt-label ""))
-         (final-prompt
-          (concat question
-                  (when region-text
-                    (concat "\n" region-text))
-                  (when function-name
-                    (format "\nFunction: %s" function-name))
-                  (when buffer-file-name
-                    (format "\nFile: %s" buffer-file-name))
-                  "\nNote: This is a question only - please do not modify the code.")))
-    (ai-prompt--insert-prompt final-prompt)))
+  (interactive "P")
+  (if prefix-arg
+      (let ((question (aider-read-string "Ask question (no context): " "")))
+        (ai-prompt--insert-prompt question))
+    (let* ((function-name (which-function))
+           (region-active (region-active-p))
+           (region-text (when region-active
+                          (buffer-substring-no-properties (region-beginning) (region-end))))
+           (prompt-label
+            (cond
+             (region-active
+              (if function-name
+                  (format "Question about selected code in function %s: " function-name)
+                "Question about selected code: "))
+             (function-name
+              (format "Question about function %s: " function-name))
+             (t "General question: ")))
+           (question (aider-read-string prompt-label ""))
+           (final-prompt
+            (concat question
+                    (when region-text
+                      (concat "\n" region-text))
+                    (when function-name
+                      (format "\nFunction: %s" function-name))
+                    (when buffer-file-name
+                      (format "\nFile: %s" buffer-file-name))
+                    "\nNote: This is a question only - please do not modify the code.")))
+      (ai-prompt--insert-prompt final-prompt))))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
@@ -314,9 +301,9 @@ Special commands:
    ("!" "Start AI CLI" ai-cli-start)
    ("z" "Switch to AI CLI" ai-cli-switch-to-buffer)
    ("p" "Open prompt file" ai-prompt-open-prompt-file)
-   ("c" "Code change" ai-prompt-code-change)
+   ("c" "Code change (C-u: global)" ai-prompt-code-change)
    ("t" "Implement TODO" ai-prompt-implement-todo)
-   ("q" "Ask question" ai-prompt-ask-question)])
+   ("q" "Ask question (C-u: global)" ai-prompt-ask-question)])
 
 ;;;###autoload
 (global-set-key (kbd "C-c p") #'ai-prompt-menu)
