@@ -130,7 +130,7 @@ If file doesn't exist, create it with sample prompt."
               (save-buffer)
               (message "Prompt added to %s" prompt-file)
               (when ai-prompt-auto-send-to-ai
-                (ignore-errors (ai-send-command full-prompt))
+                (ignore-errors (ai-cli-send-command full-prompt))
                 (ai-cli-switch-to-buffer)))))
       (message "Not in a git repository"))))
 
@@ -150,7 +150,7 @@ If file doesn't exist, create it with sample prompt."
    ((eq ai-cli-type 'gemini-cli) (gemini-cli-switch-to-buffer))
    (t (claude-code-switch-to-buffer))))
 
-(defun ai-send-command (prompt-text)
+(defun ai-cli-send-command (prompt-text)
   "Send PROMPT-TEXT to the AI service based on `ai-cli-type`."
   (cond
    ((eq ai-cli-type 'claude-code) (claude-code-send-command prompt-text))
@@ -224,11 +224,11 @@ Otherwise implement comments for the entire current file."
            (initial-input
             (cond
              (region-text
-              (format "Please implement this code block in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block."
-                      region-text))
+              (format "Please implement this code block in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.\nFunction: %s\nFile: %s"
+                      region-text function-name buffer-file-name))
              (is-comment
-              (format "Please implement this comment in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment."
-                      current-line))
+              (format "Please implement this comment in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.\nFunction: %s\nFile: %s"
+                      current-line function-name buffer-file-name))
              (function-name
               (format "Please implement all TODO in-place in function '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
                       function-name))
@@ -285,10 +285,24 @@ Special commands:
   (setq-local comment-start "# ")
   (setq-local comment-end "")
   (setq-local truncate-lines nil)  ; Disable line truncation, allowing lines to wrap
+  (define-key ai-prompt-mode-map (kbd "C-c C-c") #'ai-prompt-send-block)
   ;; YASnippet support
   (when (require 'yasnippet nil t)
     (yas-minor-mode 1)
     (ai-prompt--setup-snippets)))
+
+;;;###autoload
+(defun ai-prompt-send-block ()
+  "Send the current text block (paragraph) to the AI service.
+The block is the text separated by blank lines. It trims leading/trailing whitespace."
+  (interactive)
+  (let* ((block-text (thing-at-point 'paragraph))
+         (trimmed-text (when block-text (string-trim block-text))))
+    (if (and trimmed-text (string-match-p "\\S-" trimmed-text))
+        (progn
+          (ai-send-command trimmed-text)
+          (ai-cli-switch-to-buffer))
+      (message "No text in the current block to send."))))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist
@@ -302,7 +316,7 @@ Special commands:
    ("z" "Switch to AI CLI" ai-cli-switch-to-buffer)
    ("p" "Open prompt file" ai-prompt-open-prompt-file)
    ("c" "Code change (C-u: global)" ai-prompt-code-change)
-   ("t" "Implement TODO" ai-prompt-implement-todo)
+   ("i" "Implement TODO" ai-prompt-implement-todo)
    ("q" "Ask question (C-u: global)" ai-prompt-ask-question)])
 
 ;;;###autoload
