@@ -11,6 +11,9 @@
 
 (require 'magit)
 
+(require 'ai-code-input)
+(require 'ai-code-prompt-mode)
+
 (declare-function ai-code--insert-prompt "ai-code-prompt-mode" (prompt-text))
 
 ;;;###autoload
@@ -32,7 +35,7 @@ For each issue found, please explain:
 - The specific location in the code
 - Why it's problematic
 - A recommended solution" file-name))
-             (prompt (aider-read-string "Enter diff review prompt: " init-prompt)))
+             (prompt (ai-code-read-string "Enter diff review prompt: " init-prompt)))
         (ai-code--insert-prompt prompt))
     (ai-code--magit-generate-feature-branch-diff-file)))
 
@@ -175,7 +178,7 @@ GIT-ROOT is the root directory of the Git repository."
 (defun ai-code--handle-base-vs-head-diff-generation (git-root)
   "Handle generation of diff between a base branch and HEAD.
 GIT-ROOT is the root directory of the Git repository."
-  (let* ((base-branch (aider-read-string "Base branch name: " nil nil nil))
+  (let* ((base-branch (ai-code-read-string "Base branch name: " nil nil nil))
          (feature-branch "HEAD")
          (diff-file-name-part (concat (replace-regexp-in-string "/" "-" base-branch) ".HEAD"))
          (diff-file (expand-file-name (concat diff-file-name-part ".diff") git-root))
@@ -189,8 +192,8 @@ GIT-ROOT is the root directory of the Git repository."
 (defun ai-code--handle-branch-range-diff-generation (git-root)
   "Handle generation of diff between a base branch and a feature branch.
 GIT-ROOT is the root directory of the Git repository."
-  (let* ((base-branch (aider-read-string "Base branch name: "))
-         (feature-branch (aider-read-string "Feature branch name: "))
+  (let* ((base-branch (ai-code-read-string "Base branch name: "))
+         (feature-branch (ai-code-read-string "Feature branch name: "))
          (branch-scope)
          (scope-alist '(("Local" . local)
                         ("Remote (will prefix with 'origin/')" . remote)))
@@ -216,7 +219,7 @@ GIT-ROOT is the root directory of the Git repository."
 (defun ai-code--handle-commit-diff-generation (git-root)
   "Handle generation of diff for a single commit.
 GIT-ROOT is the root directory of the Git repository."
-  (let* ((commit-hash (aider-read-string "Commit hash: "))
+  (let* ((commit-hash (ai-code-read-string "Commit hash: "))
          (base-branch (concat commit-hash "^")) ; Diff against parent
          (feature-branch commit-hash)
          (diff-file-name-part commit-hash)
@@ -247,8 +250,8 @@ GIT-ROOT is the root directory of the Git repository."
 ;;; New helper for commit ranges
 (defun ai-code--handle-commit-range-diff-generation (git-root)
   "Handle generation of diff between two commits (commit range)."
-  (let* ((raw-start (aider-read-string "Start commit or branch: "))
-         (raw-end   (aider-read-string "End commit or branch: "))
+  (let* ((raw-start (ai-code-read-string "Start commit or branch: "))
+         (raw-end   (ai-code-read-string "End commit or branch: "))
          ;; try to resolve remote branches or commits
          (start     (ai-code--get-full-branch-ref raw-start))
          (end       (ai-code--get-full-branch-ref raw-end))
@@ -309,7 +312,7 @@ code evolution and the reasoning behind changes."
                           (concat "Selected code:\n```\n" region-text "\n```\n\n")
                         ""))
          (default-analysis "Please provide the following analysis:\n1. Code evolution patterns and timeline\n2. Key changes and their purpose\n3. Potential design decisions and thought processes\n4. Possible refactoring or improvement opportunities\n5. Insights about code architecture or design")
-         (analysis-instructions (aider-read-string "Analysis instructions: " default-analysis))
+         (analysis-instructions (ai-code-read-string "Analysis instructions: " default-analysis))
          (prompt (format "Analyze the Git commit history for this code:\n\n%s%sCommit history information:\n```\n%s\n```\n\n%s"
                          context code-sample blame-output analysis-instructions)))
     (ai-code--insert-prompt prompt))))
@@ -319,7 +322,7 @@ code evolution and the reasoning behind changes."
   "Fetch commits from the last X months as git.log under GIT-ROOT for REPO-NAME, filtered by KEYWORD.
 Returns the path to the git.log file."
   (let* ((project-log-file-path (expand-file-name "git.log" git-root))
-         (date-str (aider-read-string (format "Start date for history of %s (YYYY-MM-DD, e.g. 2025-01-01): " repo-name)))
+         (date-str (ai-code-read-string (format "Start date for history of %s (YYYY-MM-DD, e.g. 2025-01-01): " repo-name)))
          (since-arg (unless (string-empty-p date-str)
                       (format "--since=%s" date-str)))
          ;; compute defaults, then let user review & edit
@@ -332,7 +335,7 @@ Returns the path to the git.log file."
             args))
          (magit-args-str (mapconcat #'identity magit-args-default " "))
          (magit-args-input
-          (aider-read-string (format "Git log args (edit if needed): ") magit-args-str))
+          (ai-code-read-string (format "Git log args (edit if needed): ") magit-args-str))
          (magit-args (split-string magit-args-input nil t))
          (log-output (apply #'magit-git-output magit-args)))
     (message "Saving Git log to %s" project-log-file-path)
@@ -374,10 +377,10 @@ generate the log, save it to 'PROJECT_ROOT/git.log', open this file, and then an
   (interactive)
   (let* ((git-root (ai-code--validate-git-repository))
          (repo-name (file-name-nondirectory (directory-file-name git-root)))
-         (keyword (aider-read-string "Optional: Keyword to filter commits (leave empty for no filter): "))
+         (keyword (ai-code-read-string "Optional: Keyword to filter commits (leave empty for no filter): "))
          (log-file (ai-code--ensure-git-log git-root repo-name keyword))
          (default-analysis (ai-code--default-log-analysis-instructions keyword))
-         (analysis-instructions (aider-read-string "Analysis instructions for repository log: " default-analysis))
+         (analysis-instructions (ai-code-read-string "Analysis instructions for repository log: " default-analysis))
          (prompt (ai-code--build-log-prompt repo-name analysis-instructions)))
     (ai-code--insert-prompt prompt)))
 

@@ -9,6 +9,9 @@
 
 ;;; Code:
 
+(require 'ai-code-input)
+(require 'ai-code-prompt-mode)
+
 (declare-function ai-code--insert-prompt "ai-code-prompt-mode" (prompt-text))
 
 (defun ai-code--get-refactoring-context ()
@@ -64,12 +67,12 @@ Uses CONTEXT."
   (let ((current-function (plist-get context :current-function)))
     (cond
      ((string= selected-technique "Extract Method")
-      (let ((method-name (aider-read-string "New method name: ")))
+      (let ((method-name (ai-code-read-string "New method name: ")))
         (replace-regexp-in-string "\\[METHOD_NAME\\]" method-name technique-description t)))
      ((string= selected-technique "Rename Variable/Method")
       (let* ((current-name (or (thing-at-point 'symbol t)
-                              (aider-read-string "Current name: ")))
-             (new-name (aider-read-string (format "Rename '%s' to: " current-name))))
+                              (ai-code-read-string "Current name: ")))
+             (new-name (ai-code-read-string (format "Rename '%s' to: " current-name))))
         (replace-regexp-in-string
          "\\[NEW_NAME\\]" new-name
          (replace-regexp-in-string
@@ -77,51 +80,51 @@ Uses CONTEXT."
          t)))
      ((string= selected-technique "Inline Method")
       (let ((method-name (or (thing-at-point 'symbol t)
-                            (aider-read-string "Method to inline: "))))
+                            (ai-code-read-string "Method to inline: "))))
         (replace-regexp-in-string "\\[METHOD_NAME\\]" method-name technique-description t)))
      ((string= selected-technique "Inline Variable")
       (let ((variable-name (or (thing-at-point 'symbol t)
-                              (aider-read-string "Variable to inline: "))))
+                              (ai-code-read-string "Variable to inline: "))))
         (replace-regexp-in-string "\\[VARIABLE_NAME\\]" variable-name technique-description t)))
      ((string= selected-technique "Move Method")
       (let ((method-name (or current-function
-                            (aider-read-string "Method to move: ")))
-            (target-class (aider-read-string "Target class: ")))
+                            (ai-code-read-string "Method to move: ")))
+            (target-class (ai-code-read-string "Target class: ")))
         (replace-regexp-in-string 
          "\\[TARGET_CLASS\\]" target-class
          (replace-regexp-in-string 
           "\\[METHOD_NAME\\]" method-name technique-description t) 
          t)))
      ((string= selected-technique "Extract Variable")
-      (let ((var-name (aider-read-string "New variable name: ")))
+      (let ((var-name (ai-code-read-string "New variable name: ")))
         (replace-regexp-in-string "\\[VARIABLE_NAME\\]" var-name technique-description t)))
      ((string= selected-technique "Extract Parameter")
-      (let ((param-name (aider-read-string "New parameter name: ")))
+      (let ((param-name (ai-code-read-string "New parameter name: ")))
         (replace-regexp-in-string "\\[PARAMETER_NAME\\]" param-name technique-description t)))
      ((string= selected-technique "Introduce Parameter Object")
-      (let ((object-name (aider-read-string "Parameter object name: ")))
+      (let ((object-name (ai-code-read-string "Parameter object name: ")))
         (replace-regexp-in-string "\\[OBJECT_NAME\\]" object-name technique-description t)))
      ((string= selected-technique "Extract Field")
-      (let ((field-name (aider-read-string "New field name: ")))
+      (let ((field-name (ai-code-read-string "New field name: ")))
         (replace-regexp-in-string "\\[FIELD_NAME\\]" field-name technique-description t)))
      ((string= selected-technique "Extract Class")
-      (let ((new-class-name (aider-read-string "New class name: ")))
+      (let ((new-class-name (ai-code-read-string "New class name: ")))
         (replace-regexp-in-string "\\[NEW_CLASS_NAME\\]" new-class-name technique-description t)))
      ((string= selected-technique "Replace Magic Number with Symbolic Constant")
-      (let ((constant-name (aider-read-string "Constant name: ")))
+      (let ((constant-name (ai-code-read-string "Constant name: ")))
         (replace-regexp-in-string "\\[CONSTANT_NAME\\]" constant-name technique-description t)))
      ((string= selected-technique "Introduce Assertion")
-      (let ((assertion-condition (aider-read-string "Assertion condition: ")))
+      (let ((assertion-condition (ai-code-read-string "Assertion condition: ")))
         (replace-regexp-in-string "\\[ASSERTION_CONDITION\\]" assertion-condition technique-description t)))
      ((string= selected-technique "Encapsulate Field")
       (let ((field-name (or (thing-at-point 'symbol t)
-                           (aider-read-string "Field to encapsulate: "))))
+                           (ai-code-read-string "Field to encapsulate: "))))
         (replace-regexp-in-string "\\[FIELD_NAME\\]" field-name technique-description t)))
      ((string= selected-technique "Pull Up Method")
       (let* ((method-name (or current-function
                              (thing-at-point 'symbol t)
-                             (aider-read-string "Method to pull up: ")))
-             (superclass-name (aider-read-string "Superclass name: ")))
+                             (ai-code-read-string "Method to pull up: ")))
+             (superclass-name (ai-code-read-string "Superclass name: ")))
         (replace-regexp-in-string
          "\\[SUPERCLASS_NAME\\]" superclass-name
          (replace-regexp-in-string
@@ -130,8 +133,8 @@ Uses CONTEXT."
      ((string= selected-technique "Push Down Method")
       (let* ((method-name (or current-function
                              (thing-at-point 'symbol t)
-                             (aider-read-string "Method to push down: ")))
-             (subclass-names (aider-read-string "Comma-separated subclass names: ")))
+                             (ai-code-read-string "Method to push down: ")))
+             (subclass-names (ai-code-read-string "Comma-separated subclass names: ")))
         (replace-regexp-in-string
          "\\[SUBCLASS_NAMES\\]" subclass-names
          (replace-regexp-in-string
@@ -156,7 +159,7 @@ If TDD-MODE is non-nil, adds TDD constraints to the instruction."
          ;; Add TDD constraint if in TDD mode
          (tdd-constraint (if tdd-mode " Ensure all tests still pass after refactoring." ""))
          (initial-instruction (concat base-instruction tdd-constraint))
-         (final-instruction (aider-read-string "Edit refactoring instruction: " initial-instruction))
+         (final-instruction (ai-code-read-string "Edit refactoring instruction: " initial-instruction))
          ;; Add file information to context
          (file-info (if (plist-get context :file-name)
                         (format "\nFile: %s" (or buffer-file-name "unknown"))
@@ -189,7 +192,7 @@ If TDD-MODE is non-nil, adds TDD constraints to the prompt."
                            (format "\n```\n%s\n```" region-text)
                          ""))
                 ;; Get the main instruction from the user
-                (user-instruction (aider-read-string "Edit suggestion request: "
+                (user-instruction (ai-code-read-string "Edit suggestion request: "
                                                       "Analyze the code context below. Identify potential refactoring opportunities (e.g., complexity, duplication, clarity). Suggest the most impactful refactoring technique and explain why.")) ;; Improved initial-input
                 ;; Add TDD constraint if in TDD mode
                 (tdd-constraint (if tdd-mode " Ensure all tests still pass after refactoring." ""))
@@ -241,7 +244,7 @@ TDD refactor stage."
           (if function-name
               (format "Write a failing test for function '%s': " function-name)
             "Write a failing test for this feature: "))
-         (feature-desc (aider-read-string "Describe the feature to test: " initial-input))
+         (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
          (file-info (if buffer-file-name
                         (format "\nFile: %s" buffer-file-name)
                       ""))
@@ -256,7 +259,7 @@ TDD refactor stage."
           (if function-name
               (format "Implement function '%s' with minimal code to make tests pass: " function-name)
             "Implement the minimal code needed to make the failing test pass: "))
-         (implementation-desc (aider-read-string "Implementation instruction: " initial-input))
+         (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
          (file-info (if buffer-file-name
                         (format "\nFile: %s" buffer-file-name)
                       ""))

@@ -14,11 +14,11 @@
 (require 'magit)
 (require 'transient)
 
+(require 'ai-code-input)
 (require 'ai-code-prompt-mode)
 (require 'ai-code-agile)
 (require 'ai-code-git)
 
-(declare-function aider-read-string "aider-core" (prompt &optional initial-input candidate-list))
 (declare-function gptel-get-answer "gptel-assistant" (prompt))
 
 (defalias 'ai-code-cli-start #'claude-code)
@@ -70,7 +70,7 @@ If nothing is selected and no function context, prompts for general code change.
 Inserts the prompt into the AI prompt file and optionally sends to AI."
   (interactive "P")
   (if prefix-arg
-      (let ((prompt (aider-read-string "Change code (no context): " "")))
+      (let ((prompt (ai-code-read-string "Change code (no context): " "")))
         (ai-code--insert-prompt prompt))
     (unless buffer-file-name
       (user-error "Error: buffer-file-name must be available"))
@@ -86,7 +86,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
                   (function-name
                    (format "Change function %s: " function-name))
                   (t "Change code: ")))
-           (initial-prompt (aider-read-string prompt-label ""))
+           (initial-prompt (ai-code-read-string prompt-label ""))
            (final-prompt
             (concat initial-prompt
                     (when region-text (concat "\n" region-text))
@@ -129,7 +129,7 @@ Otherwise implement comments for the entire current file."
              (t
               (format "Please implement all TODO in-place in file '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
                       (file-name-nondirectory buffer-file-name)))))
-           (prompt (aider-read-string "TODO implementation instruction: " initial-input)))
+           (prompt (ai-code-read-string "TODO implementation instruction: " initial-input)))
       (ai-code--insert-prompt prompt))))
 
 ;;;###autoload
@@ -142,7 +142,7 @@ Otherwise, ask a general question about the file.
 Inserts the prompt into the AI prompt file and optionally sends to AI."
   (interactive "P")
   (if prefix-arg
-      (let ((question (aider-read-string "Ask question (no context): " "")))
+      (let ((question (ai-code-read-string "Ask question (no context): " "")))
         (ai-code--insert-prompt question))
     (let* ((function-name (which-function))
            (region-active (region-active-p))
@@ -157,7 +157,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
              (function-name
               (format "Question about function %s: " function-name))
              (t "General question: ")))
-           (question (aider-read-string prompt-label ""))
+           (question (ai-code-read-string prompt-label ""))
            (final-prompt
             (concat question
                     (when region-text
@@ -173,7 +173,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
 (defun ai-code-send-command ()
   "Read a prompt from the user and send it to the AI service."
   (interactive)
-  (when-let ((prompt (aider-read-string "Send to AI: ")))
+  (when-let ((prompt (ai-code-read-string "Send to AI: ")))
     (ai-code--insert-prompt prompt)))
 
 
@@ -196,7 +196,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
    ["AI Agile Development"
     ("r" "Refactor Code"               ai-code-refactor-book-method)
     ("t" "Test Driven Development"     ai-code-tdd-cycle)
-    ("v" "Pull or Review Code Change"  aider-pull-or-review-diff-file)
+    ("v" "Pull or Review Code Change"  ai-code-pull-or-review-diff-file)
     ]
    ])
 
