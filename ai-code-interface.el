@@ -19,9 +19,11 @@
 (declare-function yas-load-directory "yasnippet" (dir))
 (declare-function yas-minor-mode "yasnippet")
 (declare-function aider-read-string "aider-core" (prompt &optional initial-input candidate-list))
-(declare-function claude-code-send-command "claude-code")
-(declare-function claude-code-switch-to-buffer "claude-code")
 (declare-function gptel-get-answer "gptel-assistant" (prompt))
+
+(defalias 'ai-code-cli-start #'claude-code)
+(defalias 'ai-code-cli-switch-to-buffer #'claude-code-switch-to-buffer)
+(defalias 'ai-code-cli-send-command #'claude-code-send-command)
 
 ;;;###autoload
 (defcustom ai-code-prompt-file-name ".ai.code.prompt.org"
@@ -51,13 +53,6 @@ headlines instead of using the current time string."
 If non-nil, this text will be appended to the end of each prompt
 with a newline separator."
   :type '(choice (const nil) string)
-  :group 'ai-code)
-
-;;;###autoload
-(defcustom ai-code-cli-type 'claude-code
-  "Type of AI CLI service to use.
-Possible values are 'claude-code (default) or 'gemini-cli."
-  :type '(choice (const claude-code) (const gemini-cli))
   :group 'ai-code)
 
 ;;;###autoload
@@ -133,29 +128,6 @@ If file doesn't exist, create it with sample prompt."
                 (ignore-errors (ai-code-cli-send-command full-prompt))
                 (ai-code-cli-switch-to-buffer)))))
       (message "Not in a git repository"))))
-
-(defun ai-code-cli-start ()
-  "Start the AI CLI service based on `ai-code-cli-type`."
-  (interactive)
-  (cond
-   ((eq ai-code-cli-type 'claude-code) (claude-code))
-   ((eq ai-code-cli-type 'gemini-cli) (gemini-cli))
-   (t (claude-code))))
-
-(defun ai-code-cli-switch-to-buffer ()
-  "Switch to the AI CLI buffer based on `ai-code-cli-type`."
-  (interactive)
-  (cond
-   ((eq ai-code-cli-type 'claude-code) (claude-code-switch-to-buffer))
-   ((eq ai-code-cli-type 'gemini-cli) (gemini-cli-switch-to-buffer))
-   (t (claude-code-switch-to-buffer))))
-
-(defun ai-code-cli-send-command (prompt-text)
-  "Send PROMPT-TEXT to the AI service based on `ai-code-cli-type`."
-  (cond
-   ((eq ai-code-cli-type 'claude-code) (claude-code-send-command prompt-text))
-   ((eq ai-code-cli-type 'gemini-cli) (gemini-cli-send-command prompt-text))
-   (t (claude-code-send-command prompt-text))))
 
 (defun ai-code--is-comment-line (line)
   "Check if LINE is a comment line based on current buffer's comment syntax.
@@ -326,13 +298,13 @@ The block is the text separated by blank lines. It trims leading/trailing whites
     ("!" "Start AI CLI" ai-code-cli-start)
     ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer)
     ("p" "Open prompt file" ai-code-open-prompt-file)
-    ("<SPC>" "Send command to AI" ai-code-send-command)
+    ("b" "Send prompt block to AI" ai-code-prompt-send-block)
     ]
    ["AI Code Actions"
     ("c" "Code change (C-u: global)" ai-code-code-change)
     ("i" "Implement TODO" ai-code-implement-todo)
     ("q" "Ask question (C-u: global)" ai-code-ask-question)
-    ("b" "Send prompt block to AI" ai-code-prompt-send-block)
+    ("<SPC>" "Send command to AI" ai-code-send-command)
     ]
    ])
 
