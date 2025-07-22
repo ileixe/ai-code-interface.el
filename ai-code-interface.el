@@ -16,6 +16,7 @@
 
 (require 'ai-code-prompt-mode)
 (require 'ai-code-agile)
+(require 'ai-code-git)
 
 (declare-function aider-read-string "aider-core" (prompt &optional initial-input candidate-list))
 (declare-function gptel-get-answer "gptel-assistant" (prompt))
@@ -195,6 +196,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
    ["AI Agile Development"
     ("r" "Refactor Code"               ai-code-refactor-book-method)
     ("t" "Test Driven Development"     ai-code-tdd-cycle)
+    ("v" "Pull or Review Code Change"  aider-pull-or-review-diff-file)
     ]
    ])
 

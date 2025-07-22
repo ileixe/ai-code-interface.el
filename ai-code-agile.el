@@ -9,7 +9,7 @@
 
 ;;; Code:
 
-(declare-function ai-code--insert-prompt "ai-code-interface" (prompt))
+(declare-function ai-code--insert-prompt "ai-code-prompt-mode" (prompt-text))
 
 (defun ai-code--get-refactoring-context ()
   "Get the current context for refactoring."
