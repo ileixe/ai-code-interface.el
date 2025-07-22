@@ -1,18 +1,178 @@
 
 * ai-code-interface
 
-It generate and manage prompt for AI coding.
+AI 代码界面 - 一个强大的 Emacs 包，用于生成和管理 AI 编程提示。
 
-** Prompt generation
+** 概述
 
-- Using context information of current function, current file, etc
-- User ideas from [[https://github.com/tninja/aider.el][aider.el]], but have flexibility for other AI coding tools such as claude-code
+ai-code-interface 是一个专为 AI 编程助手设计的 Emacs 包，提供了智能的提示生成、管理和发送功能。它支持多种 AI 编程工具（如 Claude Code），并提供了丰富的代码上下文感知功能。
 
-** Prompt management 
+** 主要功能
 
-- Repo specific
-- Similar to aider-prompt-mode in [[https://github.com/tninja/aider.el][aider.el]]
+*** 智能提示生成
+- 基于当前函数、文件等上下文信息自动生成提示
+- 支持代码变更、问题询问、TODO 实现等多种场景
+- 提供预设的代码片段模板，涵盖常见的编程任务
 
-** Prompt sending 
+*** 提示管理
+- 仓库特定的提示文件管理（.ai.code.prompt.org）
+- 基于 Org-mode 的提示编辑界面
+- 支持历史记录和自动补全
 
-- Use corresponding function from other AI coding tools, such as [[https://github.com/stevemolitor/claude-code.el][claude-code.el]]
+*** 敏捷开发支持
+- 测试驱动开发（TDD）循环支持
+- 代码重构指导和建议
+- 支持多种重构技术（提取方法、重命名变量等）
+
+*** Git 集成
+- 代码审查和差异分析
+- Git 历史分析和 blame 功能
+- 分支对比和提交分析
+
+*** 多种输入方式
+- 支持 Helm 自动补全（可选）
+- 历史记录管理和复用
+- 上下文感知的智能建议
+
+** 安装方法
+
+*** 使用 straight.el（推荐）
+
+#+begin_src emacs-lisp
+(use-package ai-code-interface
+  :straight (:host github :repo "tninja/ai-code-interface.el")
+  :config
+  ;; 启用全局快捷键
+  (global-set-key (kbd "C-c p") #'ai-code-menu)
+  
+  ;; 可选：启用 Helm 支持（需要先安装 helm）
+  ;; (when (featurep 'helm)
+  ;;   (require 'ai-code-input))
+  
+  ;; 可选：设置自动发送到 AI
+  (setq ai-code-auto-send-to-ai t)
+  
+  ;; 可选：设置 Magit 集成
+  (with-eval-after-load 'magit
+    (ai-code-magit-setup-transients)))
+#+end_src
+
+*** 手动安装
+
+1. 克隆仓库到本地：
+   #+begin_src shell
+   git clone https://github.com/tninja/ai-code-interface.el.git ~/.emacs.d/lisp/ai-code-interface.el
+   #+end_src
+
+2. 在 Emacs 配置中添加：
+   #+begin_src emacs-lisp
+   (add-to-list 'load-path "~/.emacs.d/lisp/ai-code-interface.el")
+   (require 'ai-code-interface)
+   (global-set-key (kbd "C-c p") #'ai-code-menu)
+   #+end_src
+
+** 使用方法
+
+*** 基本使用
+
+1. 在任意 Git 仓库中按 ~C-c p~ 打开 AI 代码菜单
+2. 选择相应的功能：
+   - ~a~: 启动 AI CLI 会话
+   - ~c~: 代码变更（支持 C-u 前缀进行全局变更）
+   - ~i~: 实现 TODO 注释
+   - ~q~: 询问关于代码的问题
+   - ~p~: 打开提示文件
+   - ~<SPC>~: 发送命令到 AI
+
+*** 代码变更功能
+
+- 选择代码区域后使用 ~C-c p c~ 可以基于选中内容生成变更提示
+- 在函数内使用会自动包含函数上下文
+- 使用 ~C-u C-c p c~ 可以进行无上下文的全局变更
+
+*** TODO 实现
+
+- 光标在 TODO 注释上时，使用 ~C-c p i~ 自动生成实现提示
+- 支持选中区域或整个函数的 TODO 实现
+- 自动保持现有代码结构
+
+*** 敏捷开发功能
+
+- ~C-c p r~: 重构代码，提供多种重构技术选择
+- ~C-c p t~: TDD 循环支持（红-绿-重构）
+- ~C-c p v~: 代码审查和差异分析
+
+*** 提示文件管理
+
+- ~C-c p p~: 打开仓库特定的提示文件
+- ~C-c p b~: 发送当前段落到 AI
+- 提示文件支持 Org-mode 格式和 YASnippet 片段
+
+*** Git 集成功能
+
+在 Magit 中可以使用：
+- ~d a~: 生成或审查差异文件
+- ~B a~: 分析 Git blame 信息
+- ~l a~: 分析 Git 日志
+
+** 配置选项
+
+*** 自定义变量
+
+- ~ai-code-auto-send-to-ai~: 是否自动发送提示到 AI（默认 t）
+- ~ai-code-use-gptel-headline~: 是否使用 GPTel 生成标题（默认 nil）
+- ~ai-code-prompt-suffix~: 提示后缀文本（默认 nil）
+- ~ai-code-prompt-file-name~: 提示文件名（默认 ".ai.code.prompt.org"）
+
+*** 示例配置
+
+#+begin_src emacs-lisp
+(setq ai-code-auto-send-to-ai t
+      ai-code-use-gptel-headline nil
+      ai-code-prompt-suffix "请用中文回答。")
+#+end_src
+
+** 依赖要求
+
+*** 必需依赖
+- Emacs 26.1 或更高版本
+- ~org~: Org-mode 支持
+- ~magit~: Git 集成
+- ~transient~: 菜单系统
+
+*** 可选依赖
+- ~helm~: 增强的自动补全功能
+- ~yasnippet~: 代码片段支持
+- ~gptel~: 智能标题生成
+- ~claude-code.el~: Claude Code 集成
+
+** 代码片段
+
+包含了丰富的预设代码片段，涵盖：
+- 代码生成和重构
+- 测试和调试
+- 文档编写
+- 架构设计
+- 性能优化
+- 安全审查
+
+** 扩展和自定义
+
+您可以通过以下方式扩展功能：
+1. 添加自定义代码片段到 ~snippets/ai-prompt-mode/~ 目录
+2. 自定义 AI 命令别名
+3. 集成其他 AI 编程工具
+
+** 故障排除
+
+- 确保在 Git 仓库中使用
+- 检查 Magit 和相关依赖是否正确安装
+- 验证 AI 工具（如 Claude Code）是否正确配置
+
+** 许可证
+
+Apache-2.0 许可证
+
+** 贡献
+
+欢迎提交问题报告和改进建议！
