@@ -15,6 +15,7 @@
 (require 'transient)
 
 (require 'ai-code-prompt-mode)
+(require 'ai-code-agile)
 
 (declare-function aider-read-string "aider-core" (prompt &optional initial-input candidate-list))
 (declare-function gptel-get-answer "gptel-assistant" (prompt))
@@ -190,6 +191,10 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
     ("i" "Implement TODO" ai-code-implement-todo)
     ("q" "Ask question (C-u: global)" ai-code-ask-question)
     ("<SPC>" "Send command to AI" ai-code-send-command)
+    ]
+   ["AI Agile Development"
+    ("r" "Refactor Code"               ai-code-refactor-book-method)
+    ("t" "Test Driven Development"     ai-code-tdd-cycle)
     ]
    ])
 
