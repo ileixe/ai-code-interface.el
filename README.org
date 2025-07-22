@@ -1,5 +1,5 @@
 
-* ai-prompt-mode
+* ai-code-interface
 
 It generate and manage prompt for AI coding.
 
