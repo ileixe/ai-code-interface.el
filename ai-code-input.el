@@ -34,6 +34,65 @@ This function combines candidate-list with history for better completion."
 ;;;###autoload
 (defalias 'ai-code-read-string #'ai-code-plain-read-string)
 
+(defun ai-code--get-git-repo-root ()
+  "Return the top-level directory of the current git repository, or nil."
+  (let ((git-root (magit-toplevel)))
+    (when (and git-root (stringp git-root) (not (string-match-p "fatal" git-root)))
+      (file-truename git-root))))
+
+(defun ai-code--get-relevant-directory-for-history ()
+  "Return the top-level directory of the current git repository.
+If not in a git repo, return the directory of the current buffer's file.
+Returns nil if neither can be determined."
+  (or (ai-code--get-git-repo-root)
+      (when-let ((bfn (buffer-file-name)))
+        (file-name-directory (file-truename bfn)))))
+
+(defun ai-code--generate-history-file-name ()
+  "Generate path for .aider.input.history in git repo root or current buffer's dir."
+  (when-let ((relevant-dir (ai-code--get-relevant-directory-for-history)))
+    (expand-file-name ".aider.input.history" relevant-dir)))
+
+;;; History parsing
+
+(defun ai-code--parse-ai-code-cli-history (file-path)
+  "Parse .aider.input.history file at FILE-PATH.
+Return a list of commands, oldest to newest."
+  (when (and file-path (file-readable-p file-path))
+    (with-temp-buffer
+      (insert-file-contents file-path)
+      (let ((history-items '())
+            (current-multi-line-command-parts nil))
+        (goto-char (point-min))
+        (while (not (eobp))
+          (let ((line (buffer-substring-no-properties
+                       (line-beginning-position)
+                       (line-end-position))))
+            (when (string-match "^\\+[ \t]*\\(.*\\)" line)
+              (let ((content (match-string 1 line)))
+                (cond
+                 ((string= content "{aider")
+                  (setq current-multi-line-command-parts (list content)))
+                 ((string= content "aider}")
+                  (if current-multi-line-command-parts
+                      (progn
+                        (setq current-multi-line-command-parts
+                              (nconc current-multi-line-command-parts (list content)))
+                        (push (string-join current-multi-line-command-parts "\n")
+                              history-items)
+                        (setq current-multi-line-command-parts nil))
+                    (push content history-items)))
+                 (current-multi-line-command-parts
+                  (setq current-multi-line-command-parts
+                        (nconc current-multi-line-command-parts (list content))))
+                 (t
+                  (push content history-items))))))
+          (forward-line 1))
+        (when current-multi-line-command-parts
+          (push (string-join current-multi-line-command-parts "\n")
+                history-items))
+        (reverse history-items)))))
+
 (defun ai-code-helm-read-string-with-history (prompt history-file-name &optional initial-input candidate-list)
   "Read a string with Helm completion using specified history file.
 PROMPT is the prompt string.
