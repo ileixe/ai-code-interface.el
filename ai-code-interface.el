@@ -24,8 +24,8 @@
 (declare-function gptel-get-answer "gptel-assistant" (prompt))
 
 ;;;###autoload
-(defcustom ai-prompt-file-name ".ai.prompt.org"
-  "File name that will automatically enable `ai-prompt-mode` when opened.
+(defcustom ai-code-prompt-file-name ".ai.code.prompt.org"
+  "File name that will automatically enable `ai-code-prompt-mode` when opened.
 This is the file name without path."
   :type 'string
   :group 'ai-code)
@@ -67,7 +67,7 @@ If file doesn't exist, create it with sample prompt."
   (interactive)
   (let* ((git-root (magit-toplevel))
          (prompt-file (when git-root
-                        (expand-file-name ai-prompt-file-name git-root))))
+                        (expand-file-name ai-code-prompt-file-name git-root))))
     (if prompt-file
         (progn
           (find-file-other-window prompt-file)
@@ -82,7 +82,7 @@ If file doesn't exist, create it with sample prompt."
       (message "Not in a git repository"))))
 
 (defun ai-code--setup-snippets ()
-  "Setup YASnippet directories for `ai-prompt-mode`."
+  "Setup YASnippet directories for `ai-code-prompt-mode`."
   (condition-case nil
       (when (require 'yasnippet nil t)
         (let ((snippet-dir (expand-file-name "snippets"
@@ -94,15 +94,15 @@ If file doesn't exist, create it with sample prompt."
             (ignore-errors (yas-load-directory snippet-dir))))
     (error nil)))) ;; Suppress all errors
 
-(defun ai-code--get-ai-prompt-file-path ()
+(defun ai-code--get-ai-code-prompt-file-path ()
   "Get the path to the AI prompt file in the current git repository."
   (let* ((git-root (magit-toplevel)))
     (when git-root
-      (expand-file-name ai-prompt-file-name git-root))))
+      (expand-file-name ai-code-prompt-file-name git-root))))
 
 (defun ai-code--insert-prompt (prompt-text)
   "Insert PROMPT-TEXT into the AI prompt file."
-  (let ((prompt-file (ai-code--get-ai-prompt-file-path)))
+  (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
     (if prompt-file
         (let ((buffer (if ai-code-auto-send-to-ai
                           (find-file-noselect prompt-file)
@@ -280,22 +280,22 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
-(define-derived-mode ai-prompt-mode org-mode "AI Prompt"
+(define-derived-mode ai-code-prompt-mode org-mode "AI Prompt"
   "Major mode derived from `org-mode` for editing AI prompt files.
 Special commands:
-\{ai-prompt-mode-map}"
+\{ai-code-prompt-mode-map}"
   ;; Basic setup
   (setq-local comment-start "# ")
   (setq-local comment-end "")
   (setq-local truncate-lines nil)  ; Disable line truncation, allowing lines to wrap
-  (define-key ai-prompt-mode-map (kbd "C-c C-c") #'ai-prompt-send-block)
+  (define-key ai-code-prompt-mode-map (kbd "C-c C-c") #'ai-code-prompt-send-block)
   ;; YASnippet support
   (when (require 'yasnippet nil t)
     (yas-minor-mode 1)
     (ai-code--setup-snippets)))
 
 ;;;###autoload
-(defun ai-prompt-send-block ()
+(defun ai-code-prompt-send-block ()
   "Send the current text block (paragraph) to the AI service.
 The block is the text separated by blank lines. It trims leading/trailing whitespace."
   (interactive)
@@ -316,7 +316,7 @@ The block is the text separated by blank lines. It trims leading/trailing whites
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist
-             `(,(concat "/" (regexp-quote ai-prompt-file-name) "\'") . ai-prompt-mode))
+             `(,(concat "/" (regexp-quote ai-code-prompt-file-name) "\'") . ai-code-prompt-mode))
 
 ;;;###autoload
 (transient-define-prefix ai-code-menu ()
@@ -332,7 +332,7 @@ The block is the text separated by blank lines. It trims leading/trailing whites
     ("c" "Code change (C-u: global)" ai-code-code-change)
     ("i" "Implement TODO" ai-code-implement-todo)
     ("q" "Ask question (C-u: global)" ai-code-ask-question)
-    ("b" "Send prompt block to AI" ai-prompt-send-block)
+    ("b" "Send prompt block to AI" ai-code-prompt-send-block)
     ]
    ])
 
