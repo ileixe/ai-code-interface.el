@@ -182,7 +182,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
   "Transient menu for AI Code Interface interactive functions."
   ["AI Code Commands"
    ["AI CLI session"
-    ("!" "Start AI CLI" ai-code-cli-start)
+    ("a" "Start AI CLI" ai-code-cli-start)
     ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer)
     ("p" "Open prompt file" ai-code-open-prompt-file)
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
