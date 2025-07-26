@@ -94,6 +94,41 @@ Otherwise, copy the file path of the current buffer."
           (message (format "copied %s to clipboard" path-to-copy)))
       (message "No file path available to copy"))))
 
+(defvar ai-code-run-file-history nil
+  "History list for ai-code-run-current-file commands.")
+
+;;;###autoload
+(defun ai-code-run-current-file ()
+  "Generate command to run current script file (.py or .sh).
+Let user modify the command before running it in a compile buffer.
+Maintains a dedicated history list for this command."
+  (interactive)
+  (let* ((current-file (buffer-file-name))
+         (file-ext (when current-file (file-name-extension current-file)))
+         (file-name (when current-file (file-name-nondirectory current-file)))
+         (last-command (when ai-code-run-file-history (car ai-code-run-file-history)))
+         (default-command (cond
+                          ;; Check if current file is in the last run command
+                          ((and last-command file-name 
+                                (string-match-p (regexp-quote file-name) last-command))
+                           last-command)
+                          ;; Generate default command based on file extension
+                          ((string= file-ext "py")
+                           (format "python %s" file-name))
+                          ((string= file-ext "sh")
+                           (format "bash %s" file-name))
+                          (t nil))))
+    (unless current-file
+      (user-error "Current buffer is not visiting a file"))
+    (unless default-command
+      (user-error "Current file is not a .py or .sh file"))
+    (let ((command (read-string 
+                   (format "Run command for %s: " file-name)
+                   default-command
+                   'ai-code-run-file-history)))
+      (let ((default-directory (file-name-directory current-file)))
+        (compile command)))))
+
 ;;;###autoload
 (transient-define-prefix ai-code-menu ()
   "Transient menu for AI Code Interface interactive functions."
@@ -119,6 +154,7 @@ Otherwise, copy the file path of the current buffer."
     ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name" ai-code-copy-buffer-file-name-to-clipboard)
+    ("!" "Run Current File" ai-code-run-current-file)
     ]
    ])
 
