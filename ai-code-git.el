@@ -24,17 +24,12 @@ Otherwise, generate the diff."
   (interactive)
   (if (and buffer-file-name (string-match-p "\\.diff$" buffer-file-name))
       (let* ((file-name (file-name-nondirectory buffer-file-name))
-             (init-prompt (format "Please perform a comprehensive code review of this diff file (%s). Analyze the changes for:
-1. Potential bugs, edge cases, or logic errors
-2. Security vulnerabilities or performance issues
-3. Adherence to best practices and design patterns
-4. Code readability and maintainability
-5. Completeness of implementation
-6. Suggestions for improvements or alternative approaches
-For each issue found, please explain:
-- The specific location in the code
-- Why it's problematic
-- A recommended solution" file-name))
+             (init-prompt (format "Code review for %s. Use relevant file in repository as context.
+
+**Focus**: Quality, security, performance, patterns
+**Format**: Location, issue, solution, priority (High/Medium/Low)
+
+Provide overall assessment." file-name))
              (prompt (ai-code-read-string "Enter diff review prompt: " init-prompt)))
         (ai-code--insert-prompt prompt))
     (ai-code--magit-generate-feature-branch-diff-file)))
@@ -278,7 +273,9 @@ GIT-ROOT is the root directory of the Git repository."
                         ('commit-range (ai-code--handle-commit-range-diff-generation git-root))
                         (_ (user-error "Invalid diff type selected")))))
       (when diff-file
-        (ai-code--open-diff-file diff-file)))))
+        (ai-code--open-diff-file diff-file)
+        (when (y-or-n-p "Review this change? ")
+          (ai-code-pull-or-review-diff-file))))))
 
 ;;;###autoload
 (defun ai-code-magit-blame-analyze ()
