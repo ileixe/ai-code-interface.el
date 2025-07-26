@@ -63,15 +63,17 @@ ignoring leading whitespace."
                       (string-trim-left line)))))
 
 ;;;###autoload
-(defun ai-code-code-change (prefix-arg)
+(defun ai-code-code-change (arg)
   "Generate prompt to change code under cursor or in selected region.
-With a prefix argument (C-u), prompt for a change without adding any context.
+With a prefix argument (\\[universal-argument]), prompt for a change without adding any context.
 If a region is selected, change that specific region.
 Otherwise, change the function under cursor.
 If nothing is selected and no function context, prompts for general code change.
-Inserts the prompt into the AI prompt file and optionally sends to AI."
+Inserts the prompt into the AI prompt file and optionally sends to AI.
+
+Argument ARG is the prefix argument."
   (interactive "P")
-  (if prefix-arg
+  (if arg
       (let ((prompt (ai-code-read-string "Change code (no context): " "")))
         (ai-code--insert-prompt prompt))
     (unless buffer-file-name
@@ -135,15 +137,17 @@ Otherwise implement comments for the entire current file."
       (ai-code--insert-prompt prompt))))
 
 ;;;###autoload
-(defun ai-code-ask-question (prefix-arg)
+(defun ai-code-ask-question (arg)
   "Generate prompt to ask questions about specific code.
-With a prefix argument (C-u), prompt for a question without adding any context.
+With a prefix argument (\\[universal-argument]), prompt for a question without adding any context.
 If a region is selected, ask about that specific region.
 If cursor is in a function, ask about that function.
 Otherwise, ask a general question about the file.
-Inserts the prompt into the AI prompt file and optionally sends to AI."
+Inserts the prompt into the AI prompt file and optionally sends to AI.
+
+Argument ARG is the prefix argument."
   (interactive "P")
-  (if prefix-arg
+  (if arg
       (let ((question (ai-code-read-string "Ask question (no context): " "")))
         (ai-code--insert-prompt question))
     (let* ((function-name (which-function))
@@ -179,15 +183,17 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
     (ai-code--insert-prompt prompt)))
 
 ;;;###autoload
-(defun ai-code-investigate-exception (prefix-arg)
+(defun ai-code-investigate-exception (arg)
   "Generate prompt to investigate exceptions or errors in code.
-With a prefix argument (C-u), prompt for investigation without adding any context.
+With a prefix argument (\\[universal-argument]), prompt for investigation without adding any context.
 If a region is selected, investigate that specific error or exception.
 If cursor is in a function, investigate exceptions in that function.
 Otherwise, investigate general exception handling in the file.
-Inserts the prompt into the AI prompt file and optionally sends to AI."
+Inserts the prompt into the AI prompt file and optionally sends to AI.
+
+Argument ARG is the prefix argument."
   (interactive "P")
-  (if prefix-arg
+  (if arg
       (let ((prompt (ai-code-read-string "Investigate exception (no context): " "")))
         (ai-code--insert-prompt prompt))
     (let* ((function-name (which-function))
@@ -203,18 +209,31 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
              (function-name
               (format "Investigate exceptions in function %s: " function-name))
              (t "Investigate exceptions in code: ")))
-           (initial-prompt (ai-code-read-string prompt-label 
-                                                "Analyze this code for potential exceptions, error conditions, and exception handling patterns. Identify missing error handling, suggest improvements, and explain how exceptions should be handled."))
+           (initial-prompt (ai-code-read-string prompt-label
+                                                (concat "Analyze this code for potential exceptions, "
+                                                        "error conditions, and exception handling patterns. "
+                                                        "Identify missing error handling, suggest improvements, "
+                                                        "and explain how exceptions should be handled.")))
            (final-prompt
             (concat initial-prompt
                     (when region-text (concat "\n\nSelected code:\n" region-text))
                     (when function-name (format "\nFunction: %s" function-name))
                     (when buffer-file-name (format "\nFile: %s" buffer-file-name))
-                    "\n\nPlease focus on:\n1. Potential exception sources and error conditions\n2. Current exception handling patterns\n3. Missing error handling opportunities\n4. Best practices for exception handling in this context\n5. Suggestions for improving error handling and debugging")))
+                    (concat "\n\nPlease focus on:\n"
+                            "1. Potential exception sources and error conditions\n"
+                            "2. Current exception handling patterns\n"
+                            "3. Missing error handling opportunities\n"
+                            "4. Best practices for exception handling in this context\n"
+                            "5. Suggestions for improving error handling and debugging"))))
       (ai-code--insert-prompt final-prompt))))
 
 ;;;###autoload
 (defun ai-code-copy-buffer-file-name-to-clipboard ()
+  "Copy the current buffer's file path or selected text to clipboard.
+If in a magit status buffer, copy the current branch name.
+If in a dired buffer, copy the file at point or directory path.
+If in a regular file buffer with selected text, copy text with file path.
+Otherwise, copy the file path of the current buffer."
   (interactive)
   (let ((path-to-copy
          (cond
@@ -224,7 +243,7 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
           ;; If current buffer is a file, use existing logic
           ((buffer-file-name)
            (if (use-region-p)
-               (format "%s in %s" 
+               (format "%s in %s"
                        (buffer-substring-no-properties (region-beginning) (region-end))
                        (buffer-file-name))
              (buffer-file-name)))
