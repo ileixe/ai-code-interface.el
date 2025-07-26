@@ -13,11 +13,13 @@
 (require 'which-func)
 (require 'magit)
 (require 'transient)
+(require 'cl-lib)
 
 (require 'ai-code-input)
 (require 'ai-code-prompt-mode)
 (require 'ai-code-agile)
 (require 'ai-code-git)
+(require 'flycheck nil t)
 
 (declare-function gptel-get-answer "gptel-assistant" (prompt))
 
@@ -265,12 +267,147 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
     ]
    ["Other Tools"
     ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
+    ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name" ai-code-copy-buffer-file-name-to-clipboard)
     ]
    ])
 
 ;;;###autoload
 (global-set-key (kbd "C-c p") #'ai-code-menu)
+
+;;; Flycheck integration
+(defun ai-code-flycheck--get-errors-in-scope (start end)
+  "Return a list of Flycheck errors within the given START and END buffer positions."
+  (when (and (bound-and-true-p flycheck-mode) flycheck-current-errors)
+    (cl-remove-if-not
+     (lambda (err)
+       (let ((pos (flycheck-error-pos err)))
+         (and (integerp pos) (>= pos start) (< pos end))))
+     flycheck-current-errors)))
+
+(defun ai-code-flycheck--format-error-list (errors file-path-for-error-reporting)
+  "Formats a list string for multiple Flycheck ERRORS.
+FILE-PATH-FOR-ERROR-REPORTING is the relative file path
+to include in each error report."
+  (let ((error-reports '()))
+    (dolist (err errors)
+      (let* ((line (flycheck-error-line err))
+             (col (flycheck-error-column err))
+             (msg (flycheck-error-message err)))
+        (if (and (integerp line) (integerp col))
+            (let* ((error-line-text
+                    (save-excursion
+                      (goto-char (point-min))
+                      (forward-line (1- line))
+                      (buffer-substring-no-properties (line-beginning-position) (line-end-position)))))
+              (push (format "File: %s:%d:%d\nError: %s\nContext line:\n%s"
+                            file-path-for-error-reporting line col msg error-line-text)
+                    error-reports))
+          (progn
+            (message "AI-Code: Flycheck error for %s. Line: %S, Col: %S. Full location/context not available. Sending general error info."
+                     file-path-for-error-reporting line col)
+            (push (format "File: %s (Location: Line %s, Column %s)\nError: %s"
+                          file-path-for-error-reporting
+                          (if (integerp line) (format "%d" line) "N/A")
+                          (if (integerp col) (format "%d" col) "N/A")
+                          msg)
+                  error-reports)))))
+    (mapconcat #'identity (nreverse error-reports) "\n\n")))
+
+(defun ai-code--choose-flycheck-scope ()
+  "Return a list (START END DESCRIPTION) for Flycheck fixing scope."
+  (let* ((scope (if (region-active-p) 'region
+                  (intern
+                   (completing-read
+                    "Select Flycheck fixing scope: "
+                    (delq nil
+                          `("current-line"
+                            ,(when (which-function) "current-function")
+                            "whole-file"))
+                    nil t))))
+         start end description)
+    (pcase scope
+      ('region
+       (setq start (region-beginning)
+             end   (region-end)
+             description
+             (format "the selected region (lines %d–%d)"
+                     (line-number-at-pos start)
+                     (line-number-at-pos end))))
+      ('current-line
+       (setq start            (line-beginning-position)
+             end              (line-end-position)
+             description       (format "current line (%d)"
+                                       (line-number-at-pos (point)))))
+      ('current-function
+       (let ((bounds (bounds-of-thing-at-point 'defun)))
+         (unless bounds
+           (user-error "Not inside a function; cannot select current function"))
+         (setq start            (car bounds)
+               end              (cdr bounds)
+               description       (format "function '%s' (lines %d–%d)"
+                                        (which-function)
+                                        (line-number-at-pos (car bounds))
+                                        (line-number-at-pos (cdr bounds))))))
+      ('whole-file
+       (setq start            (point-min)
+             end              (point-max)
+             description       "the entire file"))
+      (_
+       (user-error "Unknown Flycheck scope %s" scope)))
+    (list start end description)))
+
+;;;###autoload
+(defun ai-code-flycheck-fix-errors-in-scope ()
+  "Ask AI to generate a patch fixing Flycheck errors.
+If a region is active, operate on that region.
+Otherwise prompt to choose scope: current line, current function (if any),
+or whole file.  Requires the `flycheck` package to be installed and available."
+  (interactive)
+  (unless (featurep 'flycheck)
+    (user-error "Flycheck package not found.  This feature is unavailable"))
+  (unless buffer-file-name
+    (user-error "Error: buffer-file-name must be available"))
+  (when (bound-and-true-p flycheck-mode)
+    (if (null flycheck-current-errors)
+        (message "No Flycheck errors found in the current buffer.")
+      (let* ((git-root (or (magit-toplevel) default-directory))
+             (rel-file (file-relative-name buffer-file-name git-root))
+             ;; determine start/end/scope-description via helper
+             (scope-data (ai-code--choose-flycheck-scope))
+             (start (nth 0 scope-data))
+             (end (nth 1 scope-data))
+             (scope-description (nth 2 scope-data)))
+        ;; collect errors and bail if none in that scope
+        (let ((errors-in-scope
+               (ai-code-flycheck--get-errors-in-scope start end)))
+          (if (null errors-in-scope)
+              (message "No Flycheck errors found in %s." scope-description)
+            (let* ((error-list-string
+                    (ai-code-flycheck--format-error-list errors-in-scope
+                                                         rel-file))
+                   (prompt
+                    (if (string-equal "the entire file" scope-description)
+                        (format (concat "Please fix the following Flycheck "
+                                        "errors in file %s:\n\n%s\n\nFile: %s\n"
+                                        "Note: Please make the code change "
+                                        "described above.")
+                                rel-file error-list-string buffer-file-name)
+                      (format (concat "Please fix the following Flycheck "
+                                      "errors in %s of file %s:\n\n%s\n\n"
+                                      "File: %s\nNote: Please make the code "
+                                      "change described above.")
+                              scope-description
+                              rel-file
+                              error-list-string
+                              buffer-file-name)))
+                   (edited-prompt (ai-code-read-string "Edit prompt for AI: "
+                                                       prompt)))
+              (when (and edited-prompt (not (string-blank-p edited-prompt)))
+                (ai-code--insert-prompt edited-prompt)
+                (message "Generated prompt to fix %d Flycheck error(s) in %s."
+                         (length errors-in-scope)
+                         scope-description)))))))))
 
 (provide 'ai-code-interface)
 
