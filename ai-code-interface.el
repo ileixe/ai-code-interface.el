@@ -176,6 +176,71 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
   (when-let ((prompt (ai-code-read-string "Send to AI: ")))
     (ai-code--insert-prompt prompt)))
 
+;;;###autoload
+(defun ai-code-investigate-exception (prefix-arg)
+  "Generate prompt to investigate exceptions or errors in code.
+With a prefix argument (C-u), prompt for investigation without adding any context.
+If a region is selected, investigate that specific error or exception.
+If cursor is in a function, investigate exceptions in that function.
+Otherwise, investigate general exception handling in the file.
+Inserts the prompt into the AI prompt file and optionally sends to AI."
+  (interactive "P")
+  (if prefix-arg
+      (let ((prompt (ai-code-read-string "Investigate exception (no context): " "")))
+        (ai-code--insert-prompt prompt))
+    (let* ((function-name (which-function))
+           (region-active (region-active-p))
+           (region-text (when region-active
+                          (buffer-substring-no-properties (region-beginning) (region-end))))
+           (prompt-label
+            (cond
+             (region-active
+              (if function-name
+                  (format "Investigate exception in function %s: " function-name)
+                "Investigate selected exception: "))
+             (function-name
+              (format "Investigate exceptions in function %s: " function-name))
+             (t "Investigate exceptions in code: ")))
+           (initial-prompt (ai-code-read-string prompt-label 
+                                                "Analyze this code for potential exceptions, error conditions, and exception handling patterns. Identify missing error handling, suggest improvements, and explain how exceptions should be handled."))
+           (final-prompt
+            (concat initial-prompt
+                    (when region-text (concat "\n\nSelected code:\n" region-text))
+                    (when function-name (format "\nFunction: %s" function-name))
+                    (when buffer-file-name (format "\nFile: %s" buffer-file-name))
+                    "\n\nPlease focus on:\n1. Potential exception sources and error conditions\n2. Current exception handling patterns\n3. Missing error handling opportunities\n4. Best practices for exception handling in this context\n5. Suggestions for improving error handling and debugging")))
+      (ai-code--insert-prompt final-prompt))))
+
+;;;###autoload
+(defun ai-code-copy-buffer-file-name-to-clipboard ()
+  (interactive)
+  (let ((path-to-copy
+         (cond
+          ;; If current buffer is a magit status buffer
+          ((eq major-mode 'magit-status-mode)
+           (magit-get-current-branch))
+          ;; If current buffer is a file, use existing logic
+          ((buffer-file-name)
+           (if (use-region-p)
+               (format "%s in %s" 
+                       (buffer-substring-no-properties (region-beginning) (region-end))
+                       (buffer-file-name))
+             (buffer-file-name)))
+          ;; If current buffer is a dired buffer
+          ((eq major-mode 'dired-mode)
+           (let ((file-at-point (ignore-errors (dired-get-file-for-visit))))
+             (if file-at-point
+                 ;; If there's a file under cursor, copy its full path
+                 file-at-point
+               ;; If no file under cursor, copy the dired directory path
+               (dired-current-directory))))
+          ;; For other buffer types, return nil
+          (t nil))))
+    (if path-to-copy
+        (progn
+          (kill-new path-to-copy)
+          (message (format "copied %s to clipboard" path-to-copy)))
+      (message "No file path available to copy"))))
 
 ;;;###autoload
 (transient-define-prefix ai-code-menu ()
@@ -197,6 +262,10 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
     ("r" "Refactor Code"               ai-code-refactor-book-method)
     ("t" "Test Driven Development"     ai-code-tdd-cycle)
     ("v" "Pull or Review Code Change"  ai-code-pull-or-review-diff-file)
+    ]
+   ["Other Tools"
+    ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
+    ("k" "Copy Buffer File Name" ai-code-copy-buffer-file-name-to-clipboard)
     ]
    ])
 
