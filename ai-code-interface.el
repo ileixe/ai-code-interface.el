@@ -21,8 +21,6 @@
 (require 'ai-code-change)
 (require 'ai-code-discussion)
 
-(declare-function gptel-get-answer "gptel-assistant" (prompt))
-
 (defalias 'ai-code-cli-start #'claude-code)
 (defalias 'ai-code-cli-switch-to-buffer #'claude-code-switch-to-buffer)
 (defalias 'ai-code-cli-send-command #'claude-code-send-command)
