@@ -52,6 +52,12 @@ with a newline separator."
   :group 'ai-code)
 
 ;;;###autoload
+(defcustom ai-code-cli "claude"
+  "The command-line AI tool to use for `ai-code-apply-prompt-on-current-file`."
+  :type 'string
+  :group 'ai-code)
+
+;;;###autoload
 (defun ai-code-send-command ()
   "Read a prompt from the user and send it to the AI service."
   (interactive)
@@ -130,6 +136,32 @@ Maintains a dedicated history list for this command."
         (compile command)))))
 
 ;;;###autoload
+(defun ai-code-apply-prompt-on-current-file ()
+  "Apply a user prompt to the current file and send to an AI CLI tool.
+The file can be the one in the current buffer or the one at point in a dired buffer.
+It constructs a shell command:
+sed \"1i <prompt>: \" <file> | <ai-code-cli>
+and runs it in a compilation buffer."
+  (interactive)
+  (let* ((prompt (ai-code-read-string "Prompt: "))
+         (prompt-with-suffix (if ai-code-prompt-suffix
+                                 (concat prompt ", " ai-code-prompt-suffix)
+                               prompt))
+         (file-name (cond
+                     ((eq major-mode 'dired-mode)
+                      (dired-get-filename))
+                     ((buffer-file-name)
+                      (buffer-file-name))
+                     (t (user-error "Cannot determine the file name"))))
+         (command (format "sed \"1i %s: \" %s | %s"
+                          (shell-quote-argument prompt-with-suffix)
+                          (shell-quote-argument file-name)
+                          ai-code-cli)))
+    (when file-name
+      (let ((default-directory (file-name-directory file-name)))
+        (compile command)))))
+
+;;;###autoload
 (transient-define-prefix ai-code-menu ()
   "Transient menu for AI Code Interface interactive functions."
   ["AI Code Commands"
@@ -138,6 +170,7 @@ Maintains a dedicated history list for this command."
     ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer)
     ("p" "Open prompt file" ai-code-open-prompt-file)
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
+    ("|" "Apply prompt on file" ai-code-apply-prompt-on-current-file)
     ]
    ["AI Code Actions"
     ("c" "Code change (C-u: global)" ai-code-code-change)
