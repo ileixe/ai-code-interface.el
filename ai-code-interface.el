@@ -149,13 +149,13 @@ Maintains a dedicated history list for this command."
     ("r" "Refactor Code"               ai-code-refactor-book-method)
     ("t" "Test Driven Development"     ai-code-tdd-cycle)
     ("v" "Pull or Review Code Change"  ai-code-pull-or-review-diff-file)
+    ("!" "Run Current File" ai-code-run-current-file)
     ]
    ["Other Tools"
     ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name" ai-code-copy-buffer-file-name-to-clipboard)
     ("x" "Explain code" ai-code-explain)
-    ("!" "Run Current File" ai-code-run-current-file)
     ]
    ])
 
