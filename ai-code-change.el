@@ -34,7 +34,7 @@ ignoring leading whitespace."
 ;;;###autoload
 (defun ai-code-code-change (arg)
   "Generate prompt to change code under cursor or in selected region.
-With a prefix argument (\\[universal-argument]), prompt for a change without adding any context.
+With a prefix argument (\[universal-argument]), prompt for a change without adding any context.
 If a region is selected, change that specific region.
 Otherwise, change the function under cursor.
 If nothing is selected and no function context, prompts for general code change.
@@ -51,6 +51,8 @@ Argument ARG is the prefix argument."
            (region-active (region-active-p))
            (region-text (when region-active
                           (buffer-substring-no-properties (region-beginning) (region-end))))
+           (region-start-line (when region-active
+                                (line-number-at-pos (region-beginning))))
            (prompt-label
             (cond (region-active
                    (if function-name
@@ -62,7 +64,8 @@ Argument ARG is the prefix argument."
            (initial-prompt (ai-code-read-string prompt-label ""))
            (final-prompt
             (concat initial-prompt
-                    (when region-text (concat "\n" region-text))
+                    (when region-text
+                      (format "\nCode from line %d:\n%s" region-start-line region-text))
                     (when function-name (format "\nFunction: %s" function-name))
                     (format "\nFile: %s" buffer-file-name)
                     "\nNote: Please make the code change described above.")))
@@ -79,23 +82,27 @@ Otherwise implement comments for the entire current file."
   (if (not buffer-file-name)
       (message "Error: buffer-file-name must be available")
     (let* ((current-line (string-trim (thing-at-point 'line t)))
+           (current-line-number (line-number-at-pos (point)))
            (is-comment (ai-code--is-comment-line current-line))
            (function-name (which-function))
            (function-context (if function-name
                                  (format "\nFunction: %s" function-name)
                                ""))
-           (region-text (when (region-active-p)
+           (region-active (region-active-p))
+           (region-text (when region-active
                           (buffer-substring-no-properties
                            (region-beginning)
                            (region-end))))
+           (region-start-line (when region-active
+                                (line-number-at-pos (region-beginning))))
            (initial-input
             (cond
              (region-text
-              (format "Please implement this requirement comment block in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.%s\nFile: %s"
-                      region-text function-context buffer-file-name))
+              (format "Please implement this requirement comment block starting on line %d in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.%s\nFile: %s"
+                      region-start-line region-text function-context buffer-file-name))
              (is-comment
-              (format "Please implement this requirement comment in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.%s\nFile: %s"
-                      current-line function-context buffer-file-name))
+              (format "Please implement this requirement comment on line %d in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.%s\nFile: %s"
+                      current-line-number current-line function-context buffer-file-name))
              (function-name
               (format "Please implement all TODO in-place in function '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
                       function-name))
