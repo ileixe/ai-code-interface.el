@@ -101,6 +101,92 @@ Argument ARG is the prefix argument."
                             "5. Suggestions for improving error handling and debugging"))))
       (ai-code--insert-prompt final-prompt))))
 
+;;;###autoload
+(defun ai-code-explain ()
+  "Generate prompt to explain code at different levels.
+If a region is selected, explain that specific region using function/file as context.
+Otherwise, prompt user to select scope: symbol, line, function, or file.
+Inserts the prompt into the AI prompt file and optionally sends to AI."
+  (interactive)
+  (if (region-active-p)
+      (ai-code--explain-region)
+    (ai-code--explain-with-scope-selection)))
+
+(defun ai-code--explain-region ()
+  "Explain the selected region with function/file context."
+  (let* ((region-text (buffer-substring-no-properties (region-beginning) (region-end)))
+         (function-name (which-function))
+         (context-info (if function-name
+                          (format "Function: %s" function-name)
+                        ""))
+         (prompt (format "Please explain the following code:\n\n%s\n\n%s%s\nFile: %s\n\nProvide a clear explanation of what this code does, how it works, and its purpose within the context."
+                        region-text
+                        context-info
+                        (if function-name "\n" "")
+                        (or buffer-file-name "current buffer"))))
+    (ai-code--insert-prompt prompt)))
+
+(defun ai-code--explain-with-scope-selection ()
+  "Prompt user to select explanation scope and explain accordingly."
+  (let* ((choices '("symbol" "line" "function" "file"))
+         (scope (completing-read "Select scope to explain: " choices nil t)))
+    (pcase scope
+      ("symbol" (ai-code--explain-symbol))
+      ("line" (ai-code--explain-line))
+      ("function" (ai-code--explain-function))
+      ("file" (ai-code--explain-file)))))
+
+(defun ai-code--explain-symbol ()
+  "Explain the symbol at point."
+  (let* ((symbol (thing-at-point 'symbol t))
+         (function-name (which-function)))
+    (unless symbol
+      (user-error "No symbol at point"))
+    (let ((prompt (format "Please explain the symbol '%s' in the context of:%s\nFile: %s\n\nExplain what this symbol represents, its type, purpose, and how it's used in this context."
+                         symbol
+                         (if function-name
+                             (format "\nFunction: %s" function-name)
+                           "")
+                         (or buffer-file-name "current buffer"))))
+      (ai-code--insert-prompt prompt))))
+
+(defun ai-code--explain-line ()
+  "Explain the current line."
+  (let* ((line-text (string-trim (thing-at-point 'line t)))
+         (line-number (line-number-at-pos))
+         (function-name (which-function)))
+    (let ((prompt (format "Please explain the following line of code:\n\nLine %d: %s\n\n%sFile: %s\n\nExplain what this line does, its purpose, and how it fits into the surrounding code."
+                         line-number
+                         line-text
+                         (if function-name
+                             (format "Function: %s\n" function-name)
+                           "")
+                         (or buffer-file-name "current buffer"))))
+      (ai-code--insert-prompt prompt))))
+
+(defun ai-code--explain-function ()
+  "Explain the current function."
+  (let ((function-name (which-function)))
+    (unless function-name
+      (user-error "Not inside a function"))
+    (let* ((bounds (bounds-of-thing-at-point 'defun))
+           (function-text (when bounds
+                           (buffer-substring-no-properties (car bounds) (cdr bounds))))
+           (prompt (format "Please explain the function '%s':\n\n%s\n\nFile: %s\n\nExplain what this function does, its parameters, return value, algorithm, and its role in the overall codebase."
+                          function-name
+                          (or function-text "")
+                          (or buffer-file-name "current buffer"))))
+      (ai-code--insert-prompt prompt))))
+
+(defun ai-code--explain-file ()
+  "Explain the current file."
+  (let ((file-content (buffer-substring-no-properties (point-min) (point-max)))
+        (file-name (or buffer-file-name "current buffer")))
+    (let ((prompt (format "Please explain the following file:\n\nFile: %s\n\n%s\n\nProvide an overview of this file's purpose, its main components, key functions, and how it fits into the larger codebase architecture."
+                         file-name
+                         file-content)))
+      (ai-code--insert-prompt prompt))))
+
 (provide 'ai-code-discussion)
 
 ;;; ai-code-discussion.el ends here

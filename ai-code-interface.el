@@ -154,6 +154,7 @@ Maintains a dedicated history list for this command."
     ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name" ai-code-copy-buffer-file-name-to-clipboard)
+    ("x" "Explain code" ai-code-explain)
     ("!" "Run Current File" ai-code-run-current-file)
     ]
    ])
