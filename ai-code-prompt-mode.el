@@ -74,38 +74,45 @@ If file doesn't exist, create it with sample prompt."
       (expand-file-name ai-code-prompt-file-name git-root))))
 
 (defun ai-code--insert-prompt (prompt-text)
-  "Insert PROMPT-TEXT into the AI prompt file."
-  (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
-    (if prompt-file
-        (let ((buffer (if ai-code-auto-send-to-ai
-                          (find-file-noselect prompt-file)
-                        (find-file-other-window prompt-file))))
-          (with-current-buffer buffer
-            (goto-char (point-max))
-            (unless (bolp)
-              (insert "\n"))
-            (insert "\n")
-            (insert "** ")
-            (if ai-code-use-gptel-headline
-                (condition-case nil
-                    (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
-                      (insert headline " ")
-                      (org-insert-time-stamp (current-time) t t))
-                  (error (org-insert-time-stamp (current-time) t t)))
-              (org-insert-time-stamp (current-time) t t))
-            (insert "\n")
-            (let ((full-prompt (if ai-code-prompt-suffix
-                                   (concat prompt-text "\n" ai-code-prompt-suffix "\n")
-                                 prompt-text)))
-              (insert full-prompt)
+  "Insert PROMPT-TEXT into the AI prompt file, or execute if it's a command."
+  (if (and (string-prefix-p "/" prompt-text)
+           (not (string-match-p " " prompt-text)))
+      ;; It's a command, execute directly without saving to prompt file
+      (progn
+        (message "Executing command: %s" prompt-text)
+        (ignore-errors (ai-code-cli-send-command prompt-text))
+        (ai-code-cli-switch-to-buffer))
+    ;; It's a regular prompt, write to file
+    (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
+      (if prompt-file
+          (let ((buffer (if ai-code-auto-send-to-ai
+                            (find-file-noselect prompt-file)
+                          (find-file-other-window prompt-file))))
+            (with-current-buffer buffer
+              (goto-char (point-max))
               (unless (bolp)
                 (insert "\n"))
-              (save-buffer)
-              (message "Prompt added to %s" prompt-file)
-              (when ai-code-auto-send-to-ai
-                (ignore-errors (ai-code-cli-send-command full-prompt))
-                (ai-code-cli-switch-to-buffer)))))
-      (message "Not in a git repository"))))
+              (insert "\n")
+              (insert "** ")
+              (if ai-code-use-gptel-headline
+                  (condition-case nil
+                      (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
+                        (insert headline " ")
+                        (org-insert-time-stamp (current-time) t t))
+                    (error (org-insert-time-stamp (current-time) t t)))
+                (org-insert-time-stamp (current-time) t t))
+              (insert "\n")
+              (let ((full-prompt (if ai-code-prompt-suffix
+                                     (concat prompt-text "\n" ai-code-prompt-suffix "\n")
+                                   prompt-text)))
+                (insert full-prompt)
+                (unless (bolp)
+                  (insert "\n"))
+                (save-buffer)
+                (message "Prompt added to %s" prompt-file)
+                (when ai-code-auto-send-to-ai
+                  (ignore-errors (ai-code-cli-send-command full-prompt))
+                  (ai-code-cli-switch-to-buffer)))))))))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
