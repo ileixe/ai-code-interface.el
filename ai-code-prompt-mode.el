@@ -10,8 +10,16 @@
 ;;; Code:
 
 (require 'org)
+(require 'magit)
 
 (defvar yas-snippet-dirs)
+
+(declare-function magit-toplevel "magit" (&optional dir))
+(declare-function gptel-get-answer "gptel-assistant" (prompt))
+
+(defvar ai-code-auto-send-to-ai)
+(defvar ai-code-use-gptel-headline)
+(defvar ai-code-prompt-suffix)
 
 (declare-function yas-load-directory "yasnippet" (dir))
 (declare-function yas-minor-mode "yasnippet")
