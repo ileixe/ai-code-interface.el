@@ -13,6 +13,11 @@ ai-code-interface is an Emacs package designed for AI programming assistants, pr
 - Supports various scenarios such as code changes, asking questions, and implementing TODOs.
 - Provides preset snippet templates for common programming tasks.
 
+*** Code Understanding and Discussion
+- Comprehensive Code Explanation: Get clear explanations for entire files, functions, selected regions, specific lines, or symbols at point.
+- Interactive Prompt Editing: All generated prompts can be reviewed and edited by the user before being sent to the AI, ensuring full control over the query.
+- Context-aware Question Answering: Ask questions about your code (file, function, or selected region) and get answers in context.
+
 *** Prompt Management
 - Repository-specific prompt file management (.ai.code.prompt.org).
 - Org-mode based prompt editing interface.
