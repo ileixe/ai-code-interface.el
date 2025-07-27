@@ -169,22 +169,20 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
   (let ((function-name (which-function)))
     (unless function-name
       (user-error "Not inside a function"))
-    (let* ((bounds (bounds-of-thing-at-point 'defun))
-           (function-text (when bounds
-                           (buffer-substring-no-properties (car bounds) (cdr bounds))))
-           (prompt (format "Please explain the function '%s':\n\n%s\n\nFile: %s\n\nExplain what this function does, its parameters, return value, algorithm, and its role in the overall codebase."
-                          function-name
-                          (or function-text "")
-                          (or buffer-file-name "current buffer"))))
+    (let ((prompt (format "Please explain the function '%s':
+File: %s
+Explain what this function does, its parameters, return value, algorithm, and its role in the overall codebase."
+                         function-name
+                         (or buffer-file-name "current buffer"))))
       (ai-code--insert-prompt prompt))))
+
 
 (defun ai-code--explain-file ()
   "Explain the current file."
   (let ((file-content (buffer-substring-no-properties (point-min) (point-max)))
         (file-name (or buffer-file-name "current buffer")))
-    (let ((prompt (format "Please explain the following file:\n\nFile: %s\n\n%s\n\nProvide an overview of this file's purpose, its main components, key functions, and how it fits into the larger codebase architecture."
-                         file-name
-                         file-content)))
+    (let ((prompt (format "Please explain the following file:\nFile: %s\nProvide an overview of this file's purpose, its main components, key functions, and how it fits into the larger codebase architecture."
+                         file-name)))
       (ai-code--insert-prompt prompt))))
 
 (provide 'ai-code-discussion)
