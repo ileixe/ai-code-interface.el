@@ -240,6 +240,8 @@ TDD refactor stage."
 
 (defun ai-code--tdd-red-stage (function-name)
   "Handle the Red stage of TDD for FUNCTION-NAME: Write a failing test."
+  (unless (and (buffer-file-name) (string-match-p "test" (buffer-file-name)))
+    (error "Current buffer file name must contain 'test' to enter TDD red stage"))
   (let* ((initial-input
           (if function-name
               (format "Write a failing test for function '%s': " function-name)
@@ -255,6 +257,8 @@ TDD refactor stage."
 
 (defun ai-code--tdd-green-stage (function-name)
   "Handle the Green stage of TDD for FUNCTION-NAME: Make the test pass."
+  (when (and (buffer-file-name) (string-match-p "test" (buffer-file-name)))
+    (error "Current buffer file name must not contain 'test' to enter TDD green stage"))
   (let* ((initial-input
           (if function-name
               (format "Implement function '%s' with minimal code to make tests pass: " function-name)
