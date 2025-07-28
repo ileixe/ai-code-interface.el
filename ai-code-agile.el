@@ -251,7 +251,7 @@ TDD refactor stage."
                         (format "\nFile: %s" buffer-file-name)
                       ""))
          (tdd-instructions
-          (format "%s%s Follow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet."
+          (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code."
                   feature-desc file-info)))
     (ai-code--insert-prompt tdd-instructions)))
 
@@ -261,14 +261,14 @@ TDD refactor stage."
     (error "Current buffer file name must not contain 'test' to enter TDD green stage"))
   (let* ((initial-input
           (if function-name
-              (format "Implement function '%s' with minimal code to make tests pass: " function-name)
+              (format "Implement function '%s' to make tests pass: " function-name)
             "Implement the minimal code needed to make the failing test pass: "))
          (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
          (file-info (if buffer-file-name
                         (format "\nFile: %s" buffer-file-name)
                       ""))
          (tdd-instructions
-          (format "%s%s Follow TDD principles - implement only the minimal code needed to make the test pass. Don't over-engineer or implement features not required by the test."
+          (format "%s%s\nFollow TDD principles - implement the code needed to make the test pass."
                   implementation-desc file-info)))
     (ai-code--insert-prompt tdd-instructions)))
 
