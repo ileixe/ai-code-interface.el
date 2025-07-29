@@ -26,6 +26,13 @@
 (declare-function ai-code-cli-send-command "ai-code-interface" (command))
 (declare-function ai-code-cli-switch-to-buffer "ai-code-interface" ())
 
+(defcustom ai-code-prompt-preprocess-filepaths t
+  "When non-nil, preprocess the prompt to replace file paths.
+If a word in the prompt is a file path within the current git repository,
+it will be replaced with a relative path prefixed with '@'."
+  :type 'boolean
+  :group 'ai-code)
+
 ;;;###autoload
 (defcustom ai-code-prompt-file-name ".ai.code.prompt.org"
   "File name that will automatically enable `ai-code-prompt-mode` when opened.
@@ -125,7 +132,7 @@ Returns the full prompt text that was inserted."
     (ignore-errors (ai-code-cli-send-command full-prompt))
     (ai-code-cli-switch-to-buffer)))
 
-(defun ai-code--write-prompt-to-file (prompt-text)
+(defun ai-code--write-prompt-to-file-and-send (prompt-text)
   "Write PROMPT-TEXT to the AI prompt file."
   (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
     (when prompt-file
@@ -156,11 +163,13 @@ NOTE: This does not handle file paths containing spaces."
 
 (defun ai-code--insert-prompt (prompt-text)
   "Preprocess and insert PROMPT-TEXT into the AI prompt file, or execute if it's a command."
-  (let ((processed-prompt (ai-code--preprocess-prompt-text prompt-text)))
+  (let ((processed-prompt (if ai-code-prompt-preprocess-filepaths
+                              (ai-code--preprocess-prompt-text prompt-text)
+                            prompt-text)))
     (if (and (string-prefix-p "/" processed-prompt)
              (not (string-match-p " " processed-prompt)))
         (ai-code--execute-command processed-prompt)
-      (ai-code--write-prompt-to-file processed-prompt))))
+      (ai-code--write-prompt-to-file-and-send processed-prompt))))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
