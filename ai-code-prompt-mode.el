@@ -73,46 +73,94 @@ If file doesn't exist, create it with sample prompt."
     (when git-root
       (expand-file-name ai-code-prompt-file-name git-root))))
 
+(defun ai-code--execute-command (command)
+  "Execute COMMAND directly without saving to prompt file."
+  (message "Executing command: %s" command)
+  (ignore-errors (ai-code-cli-send-command command))
+  (ai-code-cli-switch-to-buffer))
+
+(defun ai-code--generate-prompt-headline (prompt-text)
+  "Generate and insert a headline for PROMPT-TEXT."
+  (insert "** ")
+  (if ai-code-use-gptel-headline
+      (condition-case nil
+          (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
+            (insert headline " ")
+            (org-insert-time-stamp (current-time) t t))
+        (error (org-insert-time-stamp (current-time) t t)))
+    (org-insert-time-stamp (current-time) t t))
+  (insert "\n"))
+
+(defun ai-code--format-and-insert-prompt (prompt-text)
+  "Format PROMPT-TEXT with suffix and insert into the current buffer."
+  (let ((full-prompt (if ai-code-prompt-suffix
+                         (concat prompt-text "\n" ai-code-prompt-suffix "\n")
+                       prompt-text)))
+    (insert full-prompt)
+    (unless (bolp)
+      (insert "\n"))
+    full-prompt))
+
+(defun ai-code--get-prompt-buffer (prompt-file)
+  "Get the buffer for PROMPT-FILE.
+If `ai-code-auto-send-to-ai` is non-nil, open file without selecting,
+otherwise open in another window."
+  (if ai-code-auto-send-to-ai
+      (find-file-noselect prompt-file)
+    (find-file-other-window prompt-file)))
+
+(defun ai-code--append-prompt-to-buffer (prompt-text)
+  "Append formatted PROMPT-TEXT to the end of the current buffer.
+This includes generating a headline and formatting the prompt.
+Returns the full prompt text that was inserted."
+  (goto-char (point-max))
+  (unless (bolp)
+    (insert "\n\n"))
+  (ai-code--generate-prompt-headline prompt-text)
+  (ai-code--format-and-insert-prompt prompt-text))
+
+(defun ai-code--auto-send-prompt (full-prompt)
+  "If `ai-code-auto-send-to-ai` is set, send FULL-PROMPT to AI."
+  (when ai-code-auto-send-to-ai
+    (ignore-errors (ai-code-cli-send-command full-prompt))
+    (ai-code-cli-switch-to-buffer)))
+
+(defun ai-code--write-prompt-to-file (prompt-text)
+  "Write PROMPT-TEXT to the AI prompt file."
+  (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
+    (when prompt-file
+      (let ((buffer (ai-code--get-prompt-buffer prompt-file)))
+        (with-current-buffer buffer
+          (let ((full-prompt (ai-code--append-prompt-to-buffer prompt-text)))
+            (save-buffer)
+            (message "Prompt added to %s" prompt-file)
+            (ai-code--auto-send-prompt full-prompt)))))))
+
+(defun ai-code--preprocess-prompt-text (prompt-text)
+  "Preprocess PROMPT-TEXT to replace file paths with relative paths prefixed with @.
+The function splits the prompt by whitespace, checks if each part is a file
+path within the current git repository, and if so, replaces it.
+NOTE: This does not handle file paths containing spaces."
+  (if-let ((git-root (magit-toplevel)))
+      (mapconcat
+       (lambda (word)
+         (let ((expanded-word (expand-file-name word)))
+           (if (and (file-exists-p expanded-word)
+                    (string-prefix-p git-root (file-truename expanded-word)))
+               (concat "@" (file-relative-name expanded-word git-root))
+             word)))
+       (split-string prompt-text "[ \t\n]+" t) ; split by whitespace and remove empty strings
+       " ")
+    ;; Not in a git repo, return original prompt
+    prompt-text))
+
 (defun ai-code--insert-prompt (prompt-text)
-  "Insert PROMPT-TEXT into the AI prompt file, or execute if it's a command."
-  (if (and (string-prefix-p "/" prompt-text)
-           (not (string-match-p " " prompt-text)))
-      ;; It's a command, execute directly without saving to prompt file
-      (progn
-        (message "Executing command: %s" prompt-text)
-        (ignore-errors (ai-code-cli-send-command prompt-text))
-        (ai-code-cli-switch-to-buffer))
-    ;; It's a regular prompt, write to file
-    (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
-      (if prompt-file
-          (let ((buffer (if ai-code-auto-send-to-ai
-                            (find-file-noselect prompt-file)
-                          (find-file-other-window prompt-file))))
-            (with-current-buffer buffer
-              (goto-char (point-max))
-              (unless (bolp)
-                (insert "\n"))
-              (insert "\n")
-              (insert "** ")
-              (if ai-code-use-gptel-headline
-                  (condition-case nil
-                      (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
-                        (insert headline " ")
-                        (org-insert-time-stamp (current-time) t t))
-                    (error (org-insert-time-stamp (current-time) t t)))
-                (org-insert-time-stamp (current-time) t t))
-              (insert "\n")
-              (let ((full-prompt (if ai-code-prompt-suffix
-                                     (concat prompt-text "\n" ai-code-prompt-suffix "\n")
-                                   prompt-text)))
-                (insert full-prompt)
-                (unless (bolp)
-                  (insert "\n"))
-                (save-buffer)
-                (message "Prompt added to %s" prompt-file)
-                (when ai-code-auto-send-to-ai
-                  (ignore-errors (ai-code-cli-send-command full-prompt))
-                  (ai-code-cli-switch-to-buffer)))))))))
+  "Preprocess and insert PROMPT-TEXT into the AI prompt file, or execute if it's a command."
+  (let ((processed-prompt (ai-code--preprocess-prompt-text prompt-text)))
+    (if (and (string-prefix-p "/" processed-prompt)
+             (not (string-match-p " " processed-prompt)))
+        (ai-code--execute-command processed-prompt)
+      (ai-code--write-prompt-to-file processed-prompt))))
 
 ;; Define the AI Prompt Mode (derived from org-mode)
 ;;;###autoload
