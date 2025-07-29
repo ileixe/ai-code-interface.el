@@ -153,8 +153,8 @@ NOTE: This does not handle file paths containing spaces."
        (lambda (word)
          (let ((expanded-word (expand-file-name word)))
            (if (and (file-exists-p expanded-word)
-                    (string-prefix-p git-root (file-truename expanded-word)))
-               (concat "@" (file-relative-name expanded-word git-root))
+                    (string-prefix-p (file-truename git-root) (file-truename expanded-word)))
+               (concat "@" (file-relative-name (file-truename expanded-word) (file-truename git-root)))
              word)))
        (split-string prompt-text "[ \t\n]+" t) ; split by whitespace and remove empty strings
        " ")

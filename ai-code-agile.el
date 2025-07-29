@@ -238,6 +238,15 @@ TDD refactor stage."
         (ai-code--handle-ask-llm-suggestion context tdd-mode)
       (ai-code--handle-specific-refactoring selected-technique all-techniques context tdd-mode))))
 
+(defun ai-code--get-window-files ()
+  "Get a list of unique file paths from all visible windows."
+  (let ((files nil))
+    (dolist (window (window-list))
+      (let ((buffer (window-buffer window)))
+        (when (and buffer (buffer-file-name buffer))
+          (cl-pushnew (buffer-file-name buffer) files :test #'string=))))
+    files))
+
 (defun ai-code--tdd-red-stage (function-name)
   "Handle the Red stage of TDD for FUNCTION-NAME: Write a failing test."
   (unless (and (buffer-file-name) (string-match-p "test" (buffer-file-name)))
@@ -247,9 +256,12 @@ TDD refactor stage."
               (format "Write a failing test for function '%s': " function-name)
             "Write a failing test for this feature: "))
          (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
-         (file-info (if buffer-file-name
-                        (format "\nFile: %s" buffer-file-name)
-                      ""))
+         (visible-files (ai-code--get-window-files))
+         (file-info (if visible-files
+                        (format "\nFiles: %s" (mapconcat #'identity visible-files " , "))
+                      (if buffer-file-name
+                          (format "\nFile: %s" buffer-file-name)
+                        "")))
          (tdd-instructions
           (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code."
                   feature-desc file-info)))
@@ -264,9 +276,12 @@ TDD refactor stage."
               (format "Implement function '%s' to make tests pass: " function-name)
             "Implement the minimal code needed to make the failing test pass: "))
          (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
-         (file-info (if buffer-file-name
-                        (format "\nFile: %s" buffer-file-name)
-                      ""))
+         (visible-files (ai-code--get-window-files))
+         (file-info (if visible-files
+                        (format "\nFiles: %s" (mapconcat #'identity visible-files " , "))
+                      (if buffer-file-name
+                          (format "\nFile: %s" buffer-file-name)
+                        "")))
          (tdd-instructions
           (format "%s%s\nFollow TDD principles - implement the code needed to make the test pass."
                   implementation-desc file-info)))
