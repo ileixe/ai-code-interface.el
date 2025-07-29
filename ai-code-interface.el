@@ -21,6 +21,8 @@
 (require 'ai-code-change)
 (require 'ai-code-discussion)
 
+(declare-function ai-code--process-word-for-filepath "ai-code-prompt-mode" (word git-root-truename))
+
 (defalias 'ai-code-cli-start #'claude-code)
 (defalias 'ai-code-cli-switch-to-buffer #'claude-code-switch-to-buffer)
 (defalias 'ai-code-cli-send-command #'claude-code-send-command)
@@ -68,7 +70,8 @@ with a newline separator."
 If in a magit status buffer, copy the current branch name.
 If in a dired buffer, copy the file at point or directory path.
 If in a regular file buffer with selected text, copy text with file path.
-Otherwise, copy the file path of the current buffer."
+Otherwise, copy the file path of the current buffer.
+File paths are processed to relative paths with @ prefix if within git repo."
   (interactive)
   (let ((path-to-copy
          (cond
@@ -77,19 +80,33 @@ Otherwise, copy the file path of the current buffer."
            (magit-get-current-branch))
           ;; If current buffer is a file, use existing logic
           ((buffer-file-name)
-           (if (use-region-p)
-               (format "%s in %s"
-                       (buffer-substring-no-properties (region-beginning) (region-end))
-                       (buffer-file-name))
-             (buffer-file-name)))
+           (let* ((git-root (magit-toplevel))
+                  (git-root-truename (when git-root (file-truename git-root))))
+             (if (use-region-p)
+                 (let ((processed-file (if git-root-truename
+                                           (ai-code--process-word-for-filepath (buffer-file-name) git-root-truename)
+                                         (buffer-file-name))))
+                   (format "%s in %s"
+                           (buffer-substring-no-properties (region-beginning) (region-end))
+                           processed-file))
+               (if git-root-truename
+                   (ai-code--process-word-for-filepath (buffer-file-name) git-root-truename)
+                 (buffer-file-name)))))
           ;; If current buffer is a dired buffer
           ((eq major-mode 'dired-mode)
-           (let ((file-at-point (ignore-errors (dired-get-file-for-visit))))
+           (let* ((file-at-point (ignore-errors (dired-get-file-for-visit)))
+                  (git-root (magit-toplevel))
+                  (git-root-truename (when git-root (file-truename git-root))))
              (if file-at-point
-                 ;; If there's a file under cursor, copy its full path
-                 file-at-point
+                 ;; If there's a file under cursor, copy its processed path
+                 (if git-root-truename
+                     (ai-code--process-word-for-filepath file-at-point git-root-truename)
+                   file-at-point)
                ;; If no file under cursor, copy the dired directory path
-               (dired-current-directory))))
+               (let ((dir-path (dired-current-directory)))
+                 (if git-root-truename
+                     (ai-code--process-word-for-filepath dir-path git-root-truename)
+                   dir-path)))))
           ;; For other buffer types, return nil
           (t nil))))
     (if path-to-copy

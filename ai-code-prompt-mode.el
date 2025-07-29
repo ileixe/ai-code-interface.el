@@ -143,21 +143,26 @@ Returns the full prompt text that was inserted."
             (message "Prompt added to %s" prompt-file)
             (ai-code--auto-send-prompt full-prompt)))))))
 
+(defun ai-code--process-word-for-filepath (word git-root-truename)
+  "Process a single WORD, converting it to relative path with @ prefix if it's a file path."
+  (let* ((expanded-word (expand-file-name word))
+         (expanded-word-truename (file-truename expanded-word)))
+    (if (and (file-exists-p expanded-word)
+             (string-prefix-p git-root-truename expanded-word-truename))
+        (concat "@" (file-relative-name expanded-word-truename git-root-truename))
+      word)))
+
 (defun ai-code--preprocess-prompt-text (prompt-text)
   "Preprocess PROMPT-TEXT to replace file paths with relative paths prefixed with @.
 The function splits the prompt by whitespace, checks if each part is a file
 path within the current git repository, and if so, replaces it.
 NOTE: This does not handle file paths containing spaces."
   (if-let ((git-root (magit-toplevel)))
-      (mapconcat
-       (lambda (word)
-         (let ((expanded-word (expand-file-name word)))
-           (if (and (file-exists-p expanded-word)
-                    (string-prefix-p (file-truename git-root) (file-truename expanded-word)))
-               (concat "@" (file-relative-name (file-truename expanded-word) (file-truename git-root)))
-             word)))
-       (split-string prompt-text "[ \t\n]+" t) ; split by whitespace and remove empty strings
-       " ")
+      (let ((git-root-truename (file-truename git-root)))
+        (mapconcat
+         (lambda (word) (ai-code--process-word-for-filepath word git-root-truename))
+         (split-string prompt-text "[ \t\n]+" t) ; split by whitespace and remove empty strings
+         " "))
     ;; Not in a git repo, return original prompt
     prompt-text))
 
