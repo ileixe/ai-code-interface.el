@@ -65,14 +65,15 @@ with a newline separator."
     (ai-code--insert-prompt prompt)))
 
 ;;;###autoload
-(defun ai-code-copy-buffer-file-name-to-clipboard ()
+(defun ai-code-copy-buffer-file-name-to-clipboard (&optional arg)
   "Copy the current buffer's file path or selected text to clipboard.
 If in a magit status buffer, copy the current branch name.
 If in a dired buffer, copy the file at point or directory path.
 If in a regular file buffer with selected text, copy text with file path.
 Otherwise, copy the file path of the current buffer.
+With prefix argument ARG (C-u), always return full path instead of processed path.
 File paths are processed to relative paths with @ prefix if within git repo."
-  (interactive)
+  (interactive "P")
   (let ((path-to-copy
          (cond
           ;; If current buffer is a magit status buffer
@@ -83,13 +84,13 @@ File paths are processed to relative paths with @ prefix if within git repo."
            (let* ((git-root (magit-toplevel))
                   (git-root-truename (when git-root (file-truename git-root))))
              (if (use-region-p)
-                 (let ((processed-file (if git-root-truename
+                 (let ((processed-file (if (and git-root-truename (not arg))
                                            (ai-code--process-word-for-filepath (buffer-file-name) git-root-truename)
                                          (buffer-file-name))))
                    (format "%s in %s"
                            (buffer-substring-no-properties (region-beginning) (region-end))
                            processed-file))
-               (if git-root-truename
+               (if (and git-root-truename (not arg))
                    (ai-code--process-word-for-filepath (buffer-file-name) git-root-truename)
                  (buffer-file-name)))))
           ;; If current buffer is a dired buffer
@@ -99,12 +100,12 @@ File paths are processed to relative paths with @ prefix if within git repo."
                   (git-root-truename (when git-root (file-truename git-root))))
              (if file-at-point
                  ;; If there's a file under cursor, copy its processed path
-                 (if git-root-truename
+                 (if (and git-root-truename (not arg))
                      (ai-code--process-word-for-filepath file-at-point git-root-truename)
                    file-at-point)
                ;; If no file under cursor, copy the dired directory path
                (let ((dir-path (dired-current-directory)))
-                 (if git-root-truename
+                 (if (and git-root-truename (not arg))
                      (ai-code--process-word-for-filepath dir-path git-root-truename)
                    dir-path)))))
           ;; For other buffer types, return nil
@@ -202,7 +203,7 @@ and runs it in a compilation buffer."
    ["Other Tools"
     ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
-    ("k" "Copy Buffer File Name" ai-code-copy-buffer-file-name-to-clipboard)
+    ("k" "Copy Buffer File Name (C-u: full path)" ai-code-copy-buffer-file-name-to-clipboard)
     ("x" "Explain code" ai-code-explain)
     ]
    ])
