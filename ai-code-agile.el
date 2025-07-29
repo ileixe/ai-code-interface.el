@@ -249,11 +249,11 @@ TDD refactor stage."
 
 (defun ai-code--tdd-red-stage (function-name)
   "Handle the Red stage of TDD for FUNCTION-NAME: Write a failing test."
-  (unless (and (buffer-file-name) (string-match-p "test" (buffer-file-name)))
-    (error "Current buffer file name must contain 'test' to enter TDD red stage"))
-  (let* ((initial-input
+  (let* ((current-buffer-name (buffer-name))
+         (is-test-buffer (string-match-p "test" current-buffer-name))
+         (initial-input
           (if function-name
-              (format "Write a failing test for function '%s': " function-name)
+              (format "Write test for function '%s' in corresponding test code file: " function-name)
             "Write a failing test for this feature: "))
          (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
          (visible-files (ai-code--get-window-files))
@@ -263,8 +263,12 @@ TDD refactor stage."
                           (format "\nFile: %s" buffer-file-name)
                         "")))
          (tdd-instructions
-          (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code."
-                  feature-desc file-info)))
+          (if is-test-buffer
+              ;; Keep TDD instructions for test buffers
+              (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code."
+                      feature-desc file-info)
+            ;; For non-test buffers, just use feature-desc
+            (format "%s%s" feature-desc file-info))))
     (ai-code--insert-prompt tdd-instructions)))
 
 (defun ai-code--tdd-green-stage (function-name)
