@@ -211,6 +211,30 @@ and runs it in a compilation buffer."
 ;;;###autoload
 (global-set-key (kbd "C-c a") #'ai-code-menu)
 
+;; When in a special buffer (e.g., *claude-code*) and using evil-mode,
+;; pressing SPC in normal state will send the prompt.
+(defvar ai-code--original-spc-command-in-evil-normal-state nil
+  "Original command for SPC in `evil-normal-state`.")
+
+(defun ai-code-spc-command-for-special-buffer-in-evil ()
+  "In special buffers (*...*), run `ai-code-send-command`.
+Otherwise, run the original command for SPC."
+  (interactive)
+  (if (and (string-prefix-p "*" (buffer-name))
+           (string-suffix-p "*" (buffer-name)))
+      (call-interactively #'ai-code-send-command)
+    (when ai-code--original-spc-command-in-evil-normal-state
+      (call-interactively ai-code--original-spc-command-in-evil-normal-state))))
+
+(with-eval-after-load 'evil
+  (when (boundp 'evil-normal-state-map)
+    (unless ai-code--original-spc-command-in-evil-normal-state
+      (setq ai-code--original-spc-command-in-evil-normal-state
+            (lookup-key evil-normal-state-map (kbd "SPC"))))
+    (when ai-code--original-spc-command-in-evil-normal-state
+      (define-key evil-normal-state-map (kbd "SPC")
+        #'ai-code-spc-command-for-special-buffer-in-evil))))
+
 (provide 'ai-code-interface)
 
 ;;; ai-code-interface.el ends here
