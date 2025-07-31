@@ -59,7 +59,7 @@ Argument ARG is the prefix argument."
 ;;;###autoload
 (defun ai-code-investigate-exception (arg)
   "Generate prompt to investigate exceptions or errors in code.
-With a prefix argument (\\[universal-argument]), prompt for investigation without adding any context.
+With a prefix argument (\[universal-argument]), prompt for investigation without adding any context.
 If a region is selected, investigate that specific error or exception.
 If cursor is in a function, investigate exceptions in that function.
 Otherwise, investigate general exception handling in the file.
@@ -84,21 +84,16 @@ Argument ARG is the prefix argument."
               (format "Investigate exceptions in function %s: " function-name))
              (t "Investigate exceptions in code: ")))
            (initial-prompt (ai-code-read-string prompt-label
-                                                (concat "Analyze this code for potential exceptions, "
-                                                        "error conditions, and exception handling patterns. "
-                                                        "Identify missing error handling, suggest improvements, "
-                                                        "and explain how exceptions should be handled.")))
+                                                "How to fix the error in this code? Please analyze the error, explain the root cause, and provide the corrected code to resolve the issue."))
            (final-prompt
             (concat initial-prompt
                     (when region-text (concat "\n\nSelected code:\n" region-text))
                     (when function-name (format "\nFunction: %s" function-name))
                     (when buffer-file-name (format "\nFile: %s" buffer-file-name))
-                    (concat "\n\nPlease focus on:\n"
-                            "1. Potential exception sources and error conditions\n"
-                            "2. Current exception handling patterns\n"
-                            "3. Missing error handling opportunities\n"
-                            "4. Best practices for exception handling in this context\n"
-                            "5. Suggestions for improving error handling and debugging"))))
+                    (concat "\n\nNote: Please focus on how to fix the error. Your response should include:\n"
+                            "1. A brief explanation of the root cause of the error.\n"
+                            "2. A code snippet with the fix.\n"
+                            "3. An explanation of how the fix addresses the error."))))
       (ai-code--insert-prompt final-prompt))))
 
 ;;;###autoload
