@@ -15,7 +15,6 @@
 (defvar yas-snippet-dirs)
 
 (declare-function magit-toplevel "magit" (&optional dir))
-(declare-function gptel-get-answer "gptel-assistant" (prompt))
 
 (defvar ai-code-auto-send-to-ai)
 (defvar ai-code-use-gptel-headline)
@@ -25,6 +24,8 @@
 (declare-function yas-minor-mode "yasnippet")
 (declare-function ai-code-cli-send-command "ai-code-interface" (command))
 (declare-function ai-code-cli-switch-to-buffer "ai-code-interface" ())
+(declare-function gptel-request "gptel" (prompt &rest args))
+(declare-function gptel-abort "gptel" (buffer))
 
 (defcustom ai-code-prompt-preprocess-filepaths t
   "When non-nil, preprocess the prompt to replace file paths.
@@ -89,24 +90,59 @@ If file doesn't exist, create it with sample prompt."
 (defun ai-code--generate-prompt-headline (prompt-text)
   "Generate and insert a headline for PROMPT-TEXT."
   (insert "** ")
-  (if ai-code-use-gptel-headline
+  (if (and ai-code-use-gptel-headline (require 'gptel nil t))
       (condition-case nil
-          (let ((headline (gptel-get-answer (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
+          (let ((headline (ai-code-call-gptel-sync (concat "Create a 5-10 word action-oriented headline for this AI prompt that captures the main task. Use keywords like: refactor, implement, fix, optimize, analyze, document, test, review, enhance, add, remove, improve, integrate, task. Example: 'Optimize database queries' or 'Implement error handling'.\n\nPrompt: " prompt-text))))
             (insert headline " ")
             (org-insert-time-stamp (current-time) t t))
         (error (org-insert-time-stamp (current-time) t t)))
     (org-insert-time-stamp (current-time) t t))
   (insert "\n"))
 
+(defun ai-code-call-gptel-sync (question)
+  "Get an answer from gptel synchronously for a given QUESTION.
+This function blocks until a response is received or a timeout occurs."
+  (let ((answer nil)
+        (done nil)
+        (error-info nil)
+        (start-time (float-time))
+        (temp-buffer (generate-new-buffer " *gptel-sync*")))
+    (unwind-protect
+        (progn
+          (gptel-request question
+                         :buffer temp-buffer
+                         :stream nil
+                         :callback (lambda (response info)
+                                     (cond
+                                      ((stringp response)
+                                       (setq answer response))
+                                      ((eq response 'abort)
+                                       (setq error-info "Request aborted."))
+                                      (t
+                                       (setq error-info (or (plist-get info :status) "Unknown error"))))
+                                     (setq done t)))
+          ;; Block until 'done' is true or timeout is reached
+          (while (not done)
+            (when (> (- (float-time) start-time) 30) ;; timeout after 30 seconds
+              ;; Try to abort any running processes
+              (gptel-abort temp-buffer)
+              (setq done t
+                    error-info (format "Request timed out after %d seconds" 30)))
+            ;; Use sit-for to process events and allow interruption
+            (sit-for 0.1)))
+      ;; Clean up temp buffer
+      (when (buffer-live-p temp-buffer)
+        (kill-buffer temp-buffer)))
+    (if error-info
+        (error "ai-code-call-gptel-sync failed: %s" error-info)
+      answer)))
+
 (defun ai-code--format-and-insert-prompt (prompt-text)
-  "Format PROMPT-TEXT with suffix and insert into the current buffer."
-  (let ((full-prompt (if ai-code-prompt-suffix
-                         (concat prompt-text "\n" ai-code-prompt-suffix "\n")
-                       prompt-text)))
-    (insert full-prompt)
-    (unless (bolp)
-      (insert "\n"))
-    full-prompt))
+  "Insert PROMPT-TEXT into the current buffer without suffix."
+  (insert prompt-text)
+  (unless (bolp)
+    (insert "\n"))
+  prompt-text)
 
 (defun ai-code--get-prompt-buffer (prompt-file)
   "Get the buffer for PROMPT-FILE.
@@ -119,11 +155,15 @@ otherwise open in another window."
 (defun ai-code--append-prompt-to-buffer (prompt-text)
   "Append formatted PROMPT-TEXT to the end of the current buffer.
 This includes generating a headline and formatting the prompt.
-Returns the full prompt text that was inserted."
+Returns the full prompt text with suffix for sending to AI."
   (goto-char (point-max))
   (insert "\n\n")
   (ai-code--generate-prompt-headline prompt-text)
-  (ai-code--format-and-insert-prompt prompt-text))
+  (ai-code--format-and-insert-prompt prompt-text)
+  ;; Return the full prompt with suffix for AI
+  (if ai-code-prompt-suffix
+      (concat prompt-text "\n" ai-code-prompt-suffix "\n")
+    prompt-text))
 
 (defun ai-code--auto-send-prompt (full-prompt)
   "If `ai-code-auto-send-to-ai` is set, send FULL-PROMPT to AI."
