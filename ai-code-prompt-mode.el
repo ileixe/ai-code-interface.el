@@ -121,8 +121,7 @@ otherwise open in another window."
 This includes generating a headline and formatting the prompt.
 Returns the full prompt text that was inserted."
   (goto-char (point-max))
-  (unless (bolp)
-    (insert "\n\n"))
+  (insert "\n\n")
   (ai-code--generate-prompt-headline prompt-text)
   (ai-code--format-and-insert-prompt prompt-text))
 
