@@ -184,12 +184,14 @@ Returns the full prompt text with suffix for sending to AI."
 
 (defun ai-code--process-word-for-filepath (word git-root-truename)
   "Process a single WORD, converting it to relative path with @ prefix if it's a file path."
-  (let* ((expanded-word (expand-file-name word))
-         (expanded-word-truename (file-truename expanded-word)))
-    (if (and (file-exists-p expanded-word)
-             (string-prefix-p git-root-truename expanded-word-truename))
-        (concat "@" (file-relative-name expanded-word-truename git-root-truename))
-      word)))
+  (if (or (string= word ".") (string= word ".."))
+      word
+    (let* ((expanded-word (expand-file-name word))
+           (expanded-word-truename (file-truename expanded-word)))
+      (if (and (file-exists-p expanded-word)
+               (string-prefix-p git-root-truename expanded-word-truename))
+          (concat "@" (file-relative-name expanded-word-truename git-root-truename))
+        word))))
 
 (defun ai-code--preprocess-prompt-text (prompt-text)
   "Preprocess PROMPT-TEXT to replace file paths with relative paths prefixed with @.
