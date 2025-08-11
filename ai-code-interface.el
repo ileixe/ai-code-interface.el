@@ -116,6 +116,27 @@ File paths are processed to relative paths with @ prefix if within git repo."
           (message (format "copied %s to clipboard" path-to-copy)))
       (message "No file path available to copy"))))
 
+;;;###autoload
+(defun ai-code-open-clipboard-file-path-as-dired ()
+  "Open the file or directory path from clipboard in dired.
+If the clipboard contains a valid file path, open its directory in
+dired in another window and move the cursor to that file.
+If the clipboard contains a directory path, open it directly in
+dired in another window."
+  (interactive)
+  (let ((path (current-kill 0)))
+    (if (and path (file-exists-p path))
+        (if (file-directory-p path)
+            (dired-other-window path)
+          (let* ((dir (file-name-directory path))
+                 (file (file-name-nondirectory path))
+                 (dired-buffer (dired-other-window dir)))
+            (with-current-buffer dired-buffer
+              (goto-char (point-min))
+              (when (search-forward (regexp-quote file) nil t)
+                (goto-char (match-beginning 0))))))
+      (message "Clipboard does not contain a valid file or directory path"))))
+
 (defvar ai-code-run-file-history nil
   "History list for ai-code-run-current-file commands.")
 
@@ -204,6 +225,7 @@ and runs it in a compilation buffer."
     ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name (C-u: full path)" ai-code-copy-buffer-file-name-to-clipboard)
+    ("o" "Open Clipboard file dir" ai-code-open-clipboard-file-path-as-dired)
     ("x" "Explain code" ai-code-explain)
     ]
    ])
