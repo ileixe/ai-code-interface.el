@@ -235,6 +235,8 @@ and runs it in a compilation buffer."
 
 ;; When in a special buffer (e.g., *claude-code*) and using evil-mode,
 ;; pressing SPC in normal state will send the prompt.
+
+;; following code is buggy
 (defvar ai-code--original-spc-command-in-evil-normal-state nil
   "Original command for SPC in `evil-normal-state`.")
 
