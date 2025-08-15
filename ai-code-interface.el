@@ -199,12 +199,21 @@ and runs it in a compilation buffer."
         (compile command)))))
 
 ;;;###autoload
+(defun ai-code-cli-switch-to-buffer-or-hide ()
+  "Hide current buffer if its name starts and ends with '*', otherwise switch to AI CLI buffer."
+  (interactive)
+  (if (and (string-prefix-p "*" (buffer-name))
+           (string-suffix-p "*" (buffer-name)))
+      (bury-buffer)
+    (ai-code-cli-switch-to-buffer)))
+
+;;;###autoload
 (transient-define-prefix ai-code-menu ()
   "Transient menu for AI Code Interface interactive functions."
   ["AI Code Commands"
    ["AI CLI session"
     ("a" "Start AI CLI" ai-code-cli-start)
-    ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer)
+    ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer-or-hide)
     ("p" "Open prompt file" ai-code-open-prompt-file)
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
     ("|" "Apply prompt on file" ai-code-apply-prompt-on-current-file)
