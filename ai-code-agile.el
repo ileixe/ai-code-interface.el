@@ -257,6 +257,7 @@ TDD refactor stage."
             "Write a failing test for this feature: "))
          (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
          (visible-files (ai-code--get-window-files))
+         (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
          (file-info (if visible-files
                         (format "\nFiles: %s" (mapconcat #'identity visible-files " , "))
                       (if buffer-file-name
@@ -268,7 +269,7 @@ TDD refactor stage."
               (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code."
                       feature-desc file-info)
             ;; For non-test buffers, just use feature-desc
-            (format "%s%s" feature-desc file-info))))
+            (format "%s%s%s" feature-desc function-info file-info))))
     (ai-code--insert-prompt tdd-instructions)))
 
 (defun ai-code--tdd-green-stage (function-name)
@@ -277,7 +278,7 @@ If current file is a test file (contains 'test' in name), provide prompt to fix 
   (let* ((is-test-buffer (and (buffer-file-name) (string-match-p "test" (buffer-file-name))))
          (initial-input
           (if is-test-buffer
-              (format "Current test file: %s\ntest function: %s\n is failing. Please fix the code to make the test pass.\n\nTest failure details: " 
+              (format "Current test file: %s\ntest function: %s\n is failing. Please fix the code to make the test pass.\nTest failure details: " 
                       (file-name-nondirectory (buffer-file-name))
                       (or function-name "some test functions"))
             (if function-name
@@ -285,14 +286,15 @@ If current file is a test file (contains 'test' in name), provide prompt to fix 
               "Implement the minimal code needed to make the failing test pass: ")))
          (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
          (visible-files (ai-code--get-window-files))
+         (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
          (file-info (if visible-files
                         (format "\nFiles: %s" (mapconcat #'identity visible-files " , "))
                       (if buffer-file-name
                           (format "\nFile: %s" buffer-file-name)
                         "")))
          (tdd-instructions
-          (format "%s%s\nFollow TDD principles - implement the code needed to make the test pass."
-                  implementation-desc file-info)))
+          (format "%s%s%s\nFollow TDD principles - implement the code needed to make the test pass."
+                  implementation-desc function-info file-info)))
     (ai-code--insert-prompt tdd-instructions)
     ))
 
