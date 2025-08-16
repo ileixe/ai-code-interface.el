@@ -272,13 +272,17 @@ TDD refactor stage."
     (ai-code--insert-prompt tdd-instructions)))
 
 (defun ai-code--tdd-green-stage (function-name)
-  "Handle the Green stage of TDD for FUNCTION-NAME: Make the test pass."
-  (when (and (buffer-file-name) (string-match-p "test" (buffer-file-name)))
-    (error "Current buffer file name must not contain 'test' to enter TDD green stage"))
-  (let* ((initial-input
-          (if function-name
-              (format "Implement function '%s' to make tests pass: " function-name)
-            "Implement the minimal code needed to make the failing test pass: "))
+  "Handle the Green stage of TDD for FUNCTION-NAME: Make the test pass.
+If current file is a test file (contains 'test' in name), provide prompt to fix code."
+  (let* ((is-test-buffer (and (buffer-file-name) (string-match-p "test" (buffer-file-name))))
+         (initial-input
+          (if is-test-buffer
+              (format "Current test file: %s\ntest function: %s\n is failing. Please fix the code to make the test pass.\n\nTest failure details: " 
+                      (file-name-nondirectory (buffer-file-name))
+                      (or function-name "some test functions"))
+            (if function-name
+                (format "Implement function '%s' to make tests pass: " function-name)
+              "Implement the minimal code needed to make the failing test pass: ")))
          (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
          (visible-files (ai-code--get-window-files))
          (file-info (if visible-files
@@ -289,7 +293,8 @@ TDD refactor stage."
          (tdd-instructions
           (format "%s%s\nFollow TDD principles - implement the code needed to make the test pass."
                   implementation-desc file-info)))
-    (ai-code--insert-prompt tdd-instructions)))
+    (ai-code--insert-prompt tdd-instructions)
+    ))
 
 ;;;###autoload
 (defun ai-code-tdd-cycle ()
