@@ -159,11 +159,7 @@ Returns the full prompt text with suffix for sending to AI."
   (goto-char (point-max))
   (insert "\n\n")
   (ai-code--generate-prompt-headline prompt-text)
-  (ai-code--format-and-insert-prompt prompt-text)
-  ;; Return the full prompt with suffix for AI
-  (if ai-code-prompt-suffix
-      (concat prompt-text "\n" ai-code-prompt-suffix "\n")
-    prompt-text))
+  (ai-code--format-and-insert-prompt prompt-text))
 
 (defun ai-code--auto-send-prompt (full-prompt)
   "If `ai-code-auto-send-to-ai` is set, send FULL-PROMPT to AI."
@@ -173,14 +169,18 @@ Returns the full prompt text with suffix for sending to AI."
 
 (defun ai-code--write-prompt-to-file-and-send (prompt-text)
   "Write PROMPT-TEXT to the AI prompt file."
-  (let ((prompt-file (ai-code--get-ai-code-prompt-file-path)))
-    (when prompt-file
+  (let* ((full-prompt (if ai-code-prompt-suffix
+                          (concat prompt-text "\n" ai-code-prompt-suffix "\n")
+                        prompt-text))
+         (prompt-file (ai-code--get-ai-code-prompt-file-path)))
+    (if prompt-file
       (let ((buffer (ai-code--get-prompt-buffer prompt-file)))
         (with-current-buffer buffer
-          (let ((full-prompt (ai-code--append-prompt-to-buffer prompt-text)))
-            (save-buffer)
-            (message "Prompt added to %s" prompt-file)
-            (ai-code--auto-send-prompt full-prompt)))))))
+          (ai-code--append-prompt-to-buffer prompt-text)
+          (save-buffer)
+          (message "Prompt added to %s" prompt-file)
+          (ai-code--auto-send-prompt full-prompt)))
+      (ai-code--auto-send-prompt full-prompt))))
 
 (defun ai-code--process-word-for-filepath (word git-root-truename)
   "Process a single WORD, converting it to relative path with @ prefix if it's a file path."
