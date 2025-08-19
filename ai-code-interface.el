@@ -204,7 +204,8 @@ and runs it in a compilation buffer."
   (interactive)
   (if (and (string-prefix-p "*" (buffer-name))
            (string-suffix-p "*" (buffer-name)))
-      (bury-buffer)
+      (progn (bury-buffer)
+             (other-window 1))
     (ai-code-cli-switch-to-buffer)))
 
 ;;;###autoload
