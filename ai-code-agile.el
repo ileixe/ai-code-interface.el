@@ -13,6 +13,7 @@
 (require 'ai-code-prompt-mode)
 
 (declare-function ai-code--insert-prompt "ai-code-prompt-mode" (prompt-text))
+(declare-function ai-code--get-context-files-string "ai-code-input")
 
 (defun ai-code--get-refactoring-context ()
   "Get the current context for refactoring."
@@ -161,9 +162,7 @@ If TDD-MODE is non-nil, adds TDD constraints to the instruction."
          (initial-instruction (concat base-instruction tdd-constraint))
          (final-instruction (ai-code-read-string "Edit refactoring instruction: " initial-instruction))
          ;; Add file information to context
-         (file-info (if (plist-get context :file-name)
-                        (format "\nFile: %s" (or buffer-file-name "unknown"))
-                      ""))
+         (file-info (ai-code--get-context-files-string))
          (command (if region-active
                       (format "%s%s\n\nSelected code:\n%s"
                               final-instruction
@@ -197,9 +196,7 @@ If TDD-MODE is non-nil, adds TDD constraints to the prompt."
                 ;; Add TDD constraint if in TDD mode
                 (tdd-constraint (if tdd-mode " Ensure all tests still pass after refactoring." ""))
                 ;; Add file information to context
-                (file-info (if (plist-get context :file-name)
-                               (format "\nFile: %s" (or buffer-file-name "unknown"))
-                             ""))
+                (file-info (ai-code--get-context-files-string))
                 ;; Construct the prompt using user input and context
         (base-prompt (format "%s Context: %s%s%s"
                              user-instruction
@@ -238,15 +235,6 @@ TDD refactor stage."
         (ai-code--handle-ask-llm-suggestion context tdd-mode)
       (ai-code--handle-specific-refactoring selected-technique all-techniques context tdd-mode))))
 
-(defun ai-code--get-window-files ()
-  "Get a list of unique file paths from all visible windows."
-  (let ((files nil))
-    (dolist (window (window-list))
-      (let ((buffer (window-buffer window)))
-        (when (and buffer (buffer-file-name buffer))
-          (cl-pushnew (buffer-file-name buffer) files :test #'string=))))
-    files))
-
 (defun ai-code--tdd-red-stage (function-name)
   "Handle the Red stage of TDD for FUNCTION-NAME: Write a failing test."
   (let* ((current-buffer-name (buffer-name))
@@ -256,13 +244,8 @@ TDD refactor stage."
               (format "Write test for function '%s' in corresponding test code file: " function-name)
             "Write a failing test for this feature: "))
          (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
-         (visible-files (ai-code--get-window-files))
          (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
-         (file-info (if visible-files
-                        (format "\nFiles: %s" (mapconcat #'identity visible-files " , "))
-                      (if buffer-file-name
-                          (format "\nFile: %s" buffer-file-name)
-                        "")))
+         (file-info (ai-code--get-context-files-string))
          (tdd-instructions
           (if is-test-buffer
               ;; Keep TDD instructions for test buffers
@@ -285,13 +268,8 @@ If current file is a test file (contains 'test' in name), provide prompt to fix 
                 (format "Implement function '%s' to make tests pass: " function-name)
               "Implement the minimal code needed to make the failing test pass: ")))
          (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
-         (visible-files (ai-code--get-window-files))
          (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
-         (file-info (if visible-files
-                        (format "\nFiles: %s" (mapconcat #'identity visible-files " , "))
-                      (if buffer-file-name
-                          (format "\nFile: %s" buffer-file-name)
-                        "")))
+         (file-info (ai-code--get-context-files-string))
          (tdd-instructions
           (format "%s%s%s\nFollow TDD principles - implement the code needed to make the test pass."
                   implementation-desc function-info file-info)))

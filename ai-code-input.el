@@ -97,5 +97,27 @@ CANDIDATE-LIST is an optional list of candidate strings to show before history."
 (if (featurep 'helm)
     (defalias 'ai-code-read-string #'ai-code-helm-read-string))
 
+(defun ai-code--get-window-files ()
+  "Get a list of unique file paths from all visible windows."
+  (let ((files nil))
+    (dolist (window (window-list))
+      (let ((buffer (window-buffer window)))
+        (when (and buffer (buffer-file-name buffer))
+          (cl-pushnew (buffer-file-name buffer) files :test #'string=))))
+    files))
+
+(defun ai-code--get-context-files-string ()
+  "Get a string of files in the current window for context.
+The current buffer's file is always first."
+  (if (not buffer-file-name)
+      ""
+    (let* ((current-buffer-file-name buffer-file-name)
+           (all-buffer-files (delete-dups (delq nil (mapcar #'buffer-file-name (window-buffer-list)))))
+           (other-buffer-files (remove current-buffer-file-name all-buffer-files))
+           (sorted-files (cons current-buffer-file-name other-buffer-files)))
+      (if sorted-files
+          (concat "\nFiles:\n" (mapconcat #'identity sorted-files "\n"))
+        ""))))
+
 (provide 'ai-code-input)
 ;;; ai-code-input.el ends here

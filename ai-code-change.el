@@ -26,7 +26,7 @@ Returns non-nil if LINE starts with one or more comment characters,
 ignoring leading whitespace."
   (when comment-start
     (let ((comment-str (string-trim-right comment-start)))
-      (string-match-p (concat "^[ \t]*"
+      (string-match-p (concat "^[ 	]*"
                               (regexp-quote comment-str)
                               "+")
                       (string-trim-left line)))))
@@ -34,7 +34,7 @@ ignoring leading whitespace."
 ;;;###autoload
 (defun ai-code-code-change (arg)
   "Generate prompt to change code under cursor or in selected region.
-With a prefix argument (\[universal-argument]), prompt for a change without adding any context.
+With a prefix argument (universal-argument), prompt for a change without adding any context.
 If a region is selected, change that specific region.
 Otherwise, change the function under cursor.
 If nothing is selected and no function context, prompts for general code change.
@@ -62,12 +62,13 @@ Argument ARG is the prefix argument."
                    (format "Change function %s: " function-name))
                   (t "Change code: ")))
            (initial-prompt (ai-code-read-string prompt-label ""))
+           (files-context-string (ai-code--get-context-files-string))
            (final-prompt
             (concat initial-prompt
                     (when region-text
                       (format "\nCode from line %d:\n%s" region-start-line region-text))
                     (when function-name (format "\nFunction: %s" function-name))
-                    (format "\nFile: %s" buffer-file-name)
+                    files-context-string
                     "\nNote: Please make the code change described above.")))
       (ai-code--insert-prompt final-prompt))))
 
@@ -95,22 +96,23 @@ Otherwise implement comments for the entire current file."
                            (region-end))))
            (region-start-line (when region-active
                                 (line-number-at-pos (region-beginning))))
+           (files-context-string (ai-code--get-context-files-string))
            (initial-input
             (cond
              (region-text
-              (format "Please implement this requirement comment block starting on line %d in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.%s\nFile: %s"
-                      region-start-line region-text function-context buffer-file-name))
+              (format "Please implement this requirement comment block starting on line %d in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific block.%s%s"
+                      region-start-line region-text function-context files-context-string))
              (is-comment
-              (format "Please implement this requirement comment on line %d in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.%s\nFile: %s"
-                      current-line-number current-line function-context buffer-file-name))
+              (format "Please implement this requirement comment on line %d in-place: '%s'. It is already inside current code. Please replace it with implementation. Keep the existing code structure and implement just this specific comment.%s%s"
+                      current-line-number current-line function-context files-context-string))
              (function-name
-              (format "Please implement all TODO in-place in function '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
-                      function-name))
+              (format "Please implement all TODO in-place in function '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items.%s"
+                      function-name files-context-string))
              (t
-              (format "Please implement all TODO in-place in file '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items."
-                      (file-name-nondirectory buffer-file-name)))))
+              (format "Please implement all TODO in-place in file '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items.%s"
+                      (file-name-nondirectory buffer-file-name) files-context-string)))))
            (prompt (ai-code-read-string "TODO implementation instruction: " initial-input)))
-      (ai-code--insert-prompt prompt))))
+      (ai-code--insert-prompt prompt)))
 
 ;;; Flycheck integration
 (defun ai-code-flycheck--get-errors-in-scope (start end)
@@ -220,24 +222,25 @@ or whole file.  Requires the `flycheck` package to be installed and available."
                (ai-code-flycheck--get-errors-in-scope start end)))
           (if (null errors-in-scope)
               (message "No Flycheck errors found in %s." scope-description)
-            (let* ((error-list-string
+            (let* ((files-context-string (ai-code--get-context-files-string))
+                   (error-list-string
                     (ai-code-flycheck--format-error-list errors-in-scope
                                                          rel-file))
                    (prompt
                     (if (string-equal "the entire file" scope-description)
                         (format (concat "Please fix the following Flycheck "
-                                        "errors in file %s:\n\n%s\n\nFile: %s\n"
+                                        "errors in file %s:\n\n%s\n%s\n"
                                         "Note: Please make the code change "
                                         "described above.")
-                                rel-file error-list-string buffer-file-name)
+                                rel-file error-list-string files-context-string)
                       (format (concat "Please fix the following Flycheck "
-                                      "errors in %s of file %s:\n\n%s\n\n"
-                                      "File: %s\nNote: Please make the code "
+                                      "errors in %s of file %s:\n\n%s\n%s\n"
+                                      "Note: Please make the code "
                                       "change described above.")
                               scope-description
                               rel-file
                               error-list-string
-                              buffer-file-name)))
+                              files-context-string)))
                    (edited-prompt (ai-code-read-string "Edit prompt for AI: "
                                                        prompt)))
               (when (and edited-prompt (not (string-blank-p edited-prompt)))
