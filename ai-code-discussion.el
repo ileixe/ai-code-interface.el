@@ -20,7 +20,7 @@
 ;;;###autoload
 (defun ai-code-ask-question (arg)
   "Generate prompt to ask questions about specific code.
-With a prefix argument (\\[universal-argument]), prompt for a question without adding any context.
+With a prefix argument (\M-x), prompt for a question without adding any context.
 If a region is selected, ask about that specific region.
 If cursor is in a function, ask about that function.
 Otherwise, ask a general question about the file.
@@ -45,26 +45,25 @@ Argument ARG is the prefix argument."
               (format "Question about function %s: " function-name))
              (t "General question: ")))
            (question (ai-code-read-string prompt-label ""))
+           (files-context-string (ai-code--get-context-files-string))
            (final-prompt
             (concat question
                     (when region-text
                       (concat "\n" region-text))
                     (when function-name
                       (format "\nFunction: %s" function-name))
-                    (when buffer-file-name
-                      (format "\nFile: %s" buffer-file-name))
+                    files-context-string
                     "\nNote: This is a question only - please do not modify the code.")))
       (ai-code--insert-prompt final-prompt))))
 
 ;;;###autoload
 (defun ai-code-investigate-exception (arg)
   "Generate prompt to investigate exceptions or errors in code.
-With a prefix argument (\[universal-argument]), prompt for investigation without adding any context.
+With a prefix argument (\includegraphics[width=0.5em]{/usr/share/emacs/site-lisp/emacs-lisp-mode/icons/elisp-manual/universal-argument.png}), prompt for investigation without adding any context.
 If a region is selected, investigate that specific error or exception.
 If cursor is in a function, investigate exceptions in that function.
 Otherwise, investigate general exception handling in the file.
 Inserts the prompt into the AI prompt file and optionally sends to AI.
-
 Argument ARG is the prefix argument."
   (interactive "P")
   (if arg
@@ -85,16 +84,17 @@ Argument ARG is the prefix argument."
              (t "Investigate exceptions in code: ")))
            (initial-prompt (ai-code-read-string prompt-label
                                                 "How to fix the error in this code? Please analyze the error, explain the root cause, and provide the corrected code to resolve the issue."))
+           (files-context-string (ai-code--get-context-files-string))
            (final-prompt
             (concat initial-prompt
                     (when region-text (concat "\n\nSelected code:\n" region-text))
                     (when function-name (format "\nFunction: %s" function-name))
-                    (when buffer-file-name (format "\nFile: %s" buffer-file-name))
+                    files-context-string
                     (concat "\n\nNote: Please focus on how to fix the error. Your response should include:\n"
                             "1. A brief explanation of the root cause of the error.\n"
                             "2. A code snippet with the fix.\n"
-                            "3. An explanation of how the fix addresses the error."))))
-      (ai-code--insert-prompt final-prompt))))
+                            "3. An explanation of how the fix addresses the error.")))
+      (ai-code--insert-prompt final-prompt)))))
 
 ;;;###autoload
 (defun ai-code-explain ()
@@ -114,11 +114,12 @@ Inserts the prompt into the AI prompt file and optionally sends to AI."
          (context-info (if function-name
                           (format "Function: %s" function-name)
                         ""))
-         (initial-prompt (format "Please explain the following code:\n\n%s\n\n%s%s\nFile: %s\n\nProvide a clear explanation of what this code does, how it works, and its purpose within the context."
+         (files-context-string (ai-code--get-context-files-string))
+         (initial-prompt (format "Please explain the following code:\n\n%s\n\n%s%s%s\n\nProvide a clear explanation of what this code does, how it works, and its purpose within the context."
                         region-text
                         context-info
                         (if function-name "\n" "")
-                        (or buffer-file-name "current buffer")))
+                        files-context-string))
          (final-prompt (ai-code-read-string "Prompt: " initial-prompt)))
     (when final-prompt
       (ai-code--insert-prompt final-prompt))))

@@ -305,13 +305,14 @@ code evolution and the reasoning behind changes."
                          (buffer-string)))
          (context (format "File: %s\nLines: %d-%d\n\n" 
                           file-path line-start line-end))
+         (files-context-string (ai-code--get-context-files-string))
          (code-sample (if has-region
                           (concat "Selected code:\n```\n" region-text "\n```\n\n")
                         ""))
          (default-analysis "Please provide the following analysis:\n1. Code evolution patterns and timeline\n2. Key changes and their purpose\n3. Potential design decisions and thought processes\n4. Possible refactoring or improvement opportunities\n5. Insights about code architecture or design")
          (analysis-instructions (ai-code-read-string "Analysis instructions: " default-analysis))
-         (prompt (format "Analyze the Git commit history for this code:\n\n%s%sCommit history information:\n```\n%s\n```\n\n%s"
-                         context code-sample blame-output analysis-instructions)))
+         (prompt (format "Analyze the Git commit history for this code:\n\n%s%s%sCommit history information:\n```\n%s\n```\n\n%s"
+                         context files-context-string code-sample blame-output analysis-instructions)))
     (ai-code--insert-prompt prompt))))
 
 ;;;###autoload
