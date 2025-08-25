@@ -53,9 +53,6 @@ ai-code-interface is an Emacs package designed for AI programming assistants, pr
   ;; (when (featurep 'helm)
   ;;   (require 'ai-code-input))
   
-  ;; Optional: Set to automatically send to AI
-  (setq ai-code-auto-send-to-ai t)
-  
   ;; Optional: Set up Magit integration
   (with-eval-after-load 'magit
     (ai-code-magit-setup-transients)))
@@ -123,18 +120,9 @@ Available in Magit:
 
 *** Custom Variables
 
-- ~ai-code-auto-send-to-ai~: Whether to automatically send prompts to the AI (default t).
 - ~ai-code-use-gptel-headline~: Whether to use GPTel to generate headlines (default nil).
 - ~ai-code-prompt-suffix~: Suffix text for prompts (default nil).
 - ~ai-code-prompt-file-name~: Name of the prompt file (default ".ai.code.prompt.org").
-
-*** Example Configuration
-
-#+begin_src emacs-lisp
-(setq ai-code-auto-send-to-ai t
-      ai-code-use-gptel-headline nil
-      ai-code-prompt-suffix "Please answer in English.")
-#+end_src
 
 ** Dependencies
 

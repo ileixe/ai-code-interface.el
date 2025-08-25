@@ -16,7 +16,6 @@
 
 (declare-function magit-toplevel "magit" (&optional dir))
 
-(defvar ai-code-auto-send-to-ai)
 (defvar ai-code-use-gptel-headline)
 (defvar ai-code-prompt-suffix)
 
@@ -145,12 +144,8 @@ This function blocks until a response is received or a timeout occurs."
   prompt-text)
 
 (defun ai-code--get-prompt-buffer (prompt-file)
-  "Get the buffer for PROMPT-FILE.
-If `ai-code-auto-send-to-ai` is non-nil, open file without selecting,
-otherwise open in another window."
-  (if ai-code-auto-send-to-ai
-      (find-file-noselect prompt-file)
-    (find-file-other-window prompt-file)))
+  "Get the buffer for PROMPT-FILE, without selecting it."
+  (find-file-noselect prompt-file))
 
 (defun ai-code--append-prompt-to-buffer (prompt-text)
   "Append formatted PROMPT-TEXT to the end of the current buffer.
@@ -161,11 +156,10 @@ Returns the full prompt text with suffix for sending to AI."
   (ai-code--generate-prompt-headline prompt-text)
   (ai-code--format-and-insert-prompt prompt-text))
 
-(defun ai-code--auto-send-prompt (full-prompt)
-  "If `ai-code-auto-send-to-ai` is set, send FULL-PROMPT to AI."
-  (when ai-code-auto-send-to-ai
-    (ignore-errors (ai-code-cli-send-command full-prompt))
-    (ai-code-cli-switch-to-buffer)))
+(defun ai-code--send-prompt (full-prompt)
+  "Send FULL-PROMPT to AI."
+  (ignore-errors (ai-code-cli-send-command full-prompt))
+  (ai-code-cli-switch-to-buffer))
 
 (defun ai-code--write-prompt-to-file-and-send (prompt-text)
   "Write PROMPT-TEXT to the AI prompt file."
@@ -179,8 +173,9 @@ Returns the full prompt text with suffix for sending to AI."
           (ai-code--append-prompt-to-buffer prompt-text)
           (save-buffer)
           (message "Prompt added to %s" prompt-file)
-          (ai-code--auto-send-prompt full-prompt)))
-      (ai-code--auto-send-prompt full-prompt))))
+          (ai-code--send-prompt full-prompt)))
+      (ai-code--send-prompt full-prompt))))
+
 
 (defun ai-code--process-word-for-filepath (word git-root-truename)
   "Process a single WORD, converting it to relative path with @ prefix if it's a file path."

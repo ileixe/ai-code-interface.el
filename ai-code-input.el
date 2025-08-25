@@ -112,7 +112,7 @@ The current buffer's file is always first."
   (if (not buffer-file-name)
       ""
     (let* ((current-buffer-file-name buffer-file-name)
-           (all-buffer-files (delete-dups (delq nil (mapcar #'buffer-file-name (window-buffer-list)))))
+           (all-buffer-files (ai-code--get-window-files))
            (other-buffer-files (remove current-buffer-file-name all-buffer-files))
            (sorted-files (cons current-buffer-file-name other-buffer-files)))
       (if sorted-files

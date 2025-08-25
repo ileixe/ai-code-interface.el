@@ -29,13 +29,6 @@
 
 
 ;;;###autoload
-(defcustom ai-code-auto-send-to-ai t
-  "Whether to automatically send prompts to Claude Code when inserting them.
-If non-nil, call `claude-code-send-command` after inserting a prompt."
-  :type 'boolean
-  :group 'ai-code)
-
-;;;###autoload
 (defcustom ai-code-use-gptel-headline nil
   "Whether to use GPTel to generate headlines for prompt sections.
 If non-nil, call `gptel-get-answer` from gptel-assistant.el to generate
