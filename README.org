@@ -1,42 +1,40 @@
-* ai-code-interface
+* AI Code Interface
 
-AI Code Interface - A powerful Emacs package for generating and managing AI programming prompts.
+An Emacs interface for AI-assisted software development, designed to integrate seamlessly with your coding workflow. The purpose is to provide a uniform interface and experience for different AI backend.
+
+- Current it support
+  - Claude Code
+  - Gemini CLI
 
 ** Overview
 
-ai-code-interface is an Emacs package designed for AI programming assistants, providing intelligent prompt generation, management, and sending capabilities. It supports various AI programming tools (like Claude Code) and offers rich code context-aware features.
+`ai-code-interface` is a comprehensive Emacs package that connects your development environment to various AI coding assistants. It provides a rich set of interactive commands to facilitate a wide range of software engineering tasks, from writing and refactoring code to analyzing Git history and following agile methodologies like Test-Driven Development (TDD).
+
+The core philosophy is to keep you in the editor, leveraging AI to augment your skills without disrupting your flow. It achieves this through deep integration with popular Emacs packages like Magit, Org-mode, Flycheck, and Helm.
 
 ** Key Features
 
-*** Intelligent Prompt Generation
-- Automatically generates prompts based on the current function, file, and other contextual information.
-- Supports various scenarios such as code changes, asking questions, and implementing TODOs.
-- Provides preset snippet templates for common programming tasks.
-
-*** Code Understanding and Discussion
-- Comprehensive Code Explanation: Get clear explanations for entire files, functions, selected regions, specific lines, or symbols at point.
-- Interactive Prompt Editing: All generated prompts can be reviewed and edited by the user before being sent to the AI, ensuring full control over the query.
-- Context-aware Question Answering: Ask questions about your code (file, function, or selected region) and get answers in context.
-
-*** Prompt Management
-- Repository-specific prompt file management (.ai.code.prompt.org).
-- Org-mode based prompt editing interface.
-- Supports history and auto-completion.
-
-*** Agile Development Support
-- Test-Driven Development (TDD) cycle support.
-- Code refactoring guidance and suggestions.
-- Supports various refactoring techniques (extract method, rename variable, etc.).
-
-*** Git Integration
-- Code review and diff analysis.
-- Git history analysis and blame functionality.
-- Branch comparison and commit analysis.
-
-*** Multiple Input Methods
-- Supports Helm auto-completion (optional).
-- History management and reuse.
-- Context-aware intelligent suggestions.
+- *Interactive AI Chat*: Start an interactive session with an AI assistant in a dedicated Emacs buffer.
+- *Context-Aware Prompting*: Automatically include relevant context in your prompts, such as file paths, selected code regions, or the current function.
+- *Code Manipulation*:
+  - *Change Code*: Request changes to the current function or a selected region.
+  - *Implement TODOs*: Automatically generate code to fulfill `TODO` comments.
+  - *Explain Code*: Get explanations for a symbol, line, function, file, or selected region.
+  - *Fix Errors*: Use `Flycheck` integration to automatically generate fixes for reported errors.
+- *Agile Development*:
+  - *TDD Cycle*: A guided workflow for the Red-Green-Refactor cycle of Test-Driven Development.
+  - *Refactoring*: Apply common refactoring techniques (e.g., Extract Method, Rename Variable) with AI assistance.
+- *Git & Magit Integration*:
+  - *Review Diffs*: Generate and review diffs for commits, branches, or staged changes.
+  - *Analyze History*: Use `git blame` and `git log` output to get AI-powered insights into code evolution and contributor patterns.
+  - *Transient Menus*: Access AI commands directly from the Magit interface.
+- *Prompt Management*:
+  - *Prompt File*: Use a dedicated `.ai.code.prompt.org` file to manage and reuse prompts.
+  - *Snippets*: Leverage `yasnippet` for a library of predefined, reusable prompts.
+- *Usability Enhancements*:
+  - *Transient Menu*: A clean, organized menu (`C-c a`) for easy command discovery.
+  - *Helm/Completing-Read*: Enhanced input completion with history.
+  - *Clipboard Utilities*: Easily copy file paths (formatted for AI prompts) and open clipboard paths in Dired.
 
 ** Installation
 
@@ -46,120 +44,93 @@ ai-code-interface is an Emacs package designed for AI programming assistants, pr
 (use-package ai-code-interface
   :straight (:host github :repo "tninja/ai-code-interface.el")
   :config
-  ;; Enable global keybinding
-  (global-set-key (kbd "C-c p") #'ai-code-menu)
+  ;; Enable global keybinding for the main menu
+  (global-set-key (kbd "C-c a") #'ai-code-menu)
   
-  ;; Optional: Enable Helm support (requires helm to be installed first)
-  ;; (when (featurep 'helm)
-  ;;   (require 'ai-code-input))
-  
-  ;; Optional: Set up Magit integration
+  ;; Optional: Set up Magit integration for AI commands in Magit popups
   (with-eval-after-load 'magit
     (ai-code-magit-setup-transients)))
 #+end_src
 
-*** Manual Installation
-
-1. Clone the repository locally:
-   #+begin_src shell
-   git clone https://github.com/tninja/ai-code-interface.el.git ~/.emacs.d/lisp/ai-code-interface.el
-   #+end_src
-
-2. Add the following to your Emacs configuration:
-   #+begin_src emacs-lisp
-   (add-to-list 'load-path "~/.emacs.d/lisp/ai-code-interface.el")
-   (require 'ai-code-interface)
-   (global-set-key (kbd "C-c p") #'ai-code-menu)
-   #+end_src
-
 ** Usage
 
-*** Basic Usage
+1.  *Configuration*:
+    This package acts as a generic interface that requires a backend AI assistant package to function. You can configure it to work with different backends.
 
-1. In any Git repository, press ~C-c p~ to open the AI code menu.
-2. Select the desired function:
-   - ~a~: Start an AI CLI session.
-   - ~c~: Code change (supports C-u prefix for global changes).
-   - ~i~: Implement a TODO comment.
-   - ~q~: Ask a question about the code.
-   - ~p~: Open the prompt file.
-   - ~<SPC>~: Send a command to the AI.
+    *** Backend: `claude-code.el` (Default)
+    It is designed to work out-of-the-box with `claude-code.el`.
 
-*** Code Change Function
+    First, ensure you have `claude-code.el` installed and configured. You can get it from https://github.com/stevemolitor/claude-code.el.
 
-- After selecting a code region, use ~C-c p c~ to generate a change prompt based on the selection.
-- Using it inside a function will automatically include the function's context.
-- Use ~C-u C-c p c~ for a context-free global change.
+    `ai-code-interface` will automatically use it, as it defaults to aliasing its core functions to `claude-code.el`'s functions.
 
-*** TODO Implementation
+    *** Backend: `gemini-cli.el`
+    To use `gemini-cli.el` as the backend, first install it from https://github.com/linchen2chris/gemini-cli.el.
 
-- With the cursor on a TODO comment, use ~C-c p i~ to automatically generate an implementation prompt.
-- Supports implementing TODOs for a selected region or the entire function.
-- Automatically maintains the existing code structure.
+    Then, add the following configuration to your Emacs setup to override the defaults:
+    #+begin_src emacs-lisp
+    (with-eval-after-load 'ai-code-interface
+      (require 'gemini-cli)
+      (defalias 'ai-code-cli-start #'gemini-cli-mode)
+      (defalias 'ai-code-cli-switch-to-buffer #'gemini-cli-switch-to-buffer)
+      (defalias 'ai-code-cli-send-command #'gemini-cli-send-command))
+    #+end_src
 
-*** Agile Development Features
+    *** Backend: `claude-code-ide.el`
+    To use `claude-code-ide.el` as the backend, first install it from https://github.com/manzaltu/claude-code-ide.el.
 
-- ~C-c p r~: Refactor code, offering a choice of various refactoring techniques.
-- ~C-c p t~: TDD cycle support (Red-Green-Refactor).
-- ~C-c p v~: Code review and diff analysis.
+    Then, add the following configuration to your Emacs setup:
+    #+begin_src emacs-lisp
+      (require 'claude-code-ide)
+      (defun claude-code-ide-send-command (prompt)
+        "Send a command PROMPT to the Claude Code IDE session.
+      This function sends the given PROMPT string to the active Claude Code
+      terminal session for the current project. If no session exists, it will
+      raise a user error."
+        (interactive)
+        (let ((buffer-name (claude-code-ide--get-buffer-name)))
+          (if-let ((buffer (get-buffer buffer-name)))
+              (when (not (string-empty-p prompt))
+                (with-current-buffer buffer
+                  (claude-code-ide--terminal-send-string prompt)
+                  ;; Small delay to ensure prompt text is processed before sending return
+                  (sit-for 0.1)
+                  (claude-code-ide--terminal-send-return))
+                (claude-code-ide-debug "Sent prompt to Claude Code: %s" prompt))
+            (user-error "No Claude Code session for this project"))))
 
-*** Prompt File Management
+      (with-eval-after-load 'ai-code-interface
+        (defalias 'ai-code-cli-start #'claude-code-ide--start-if-no-session)
+        (defalias 'ai-code-cli-switch-to-buffer #'claude-code-ide-switch-to-buffer)
+        (defalias 'ai-code-cli-send-command #'claude-code-ide-send-command))
+    #+end_src
 
-- ~C-c p p~: Open the repository-specific prompt file.
-- ~C-c p b~: Send the current paragraph to the AI.
-- The prompt file supports Org-mode format and YASnippet snippets.
+    You can adapt this pattern for other AI assistant packages by changing the functions in the `defalias` calls.
 
-*** Git Integration Features
+2.  *Main Entry Point*:
+    Press `C-c a` to open the main transient menu, which provides access to all major features.
 
-Available in Magit:
-- ~d a~: Generate or review a diff file.
-- ~B a~: Analyze Git blame information.
-- ~l a~: Analyze Git log.
+3.  *Typical Workflows*:
+    - *Asking a Question*: Place your cursor within a function, press `C-c a`, then `q` (`ai-code-ask-question`), type your question, and press Enter. The question, along with context, will be sent to the AI.
+    - *Refactoring a Function*: With the cursor in a function, press `C-c a`, then `r` (`ai-code-refactor-book-method`). Select a refactoring technique from the list, provide any required input (e.g., a new method name), and the prompt will be generated.
+    - *Reviewing a Pull Request*: Press `C-c a`, then `v` (`ai-code-pull-or-review-diff-file`). Choose to generate a diff between two branches. The diff will be created in a new buffer, and you'll be prompted to start a review.
 
-** Configuration Options
-
-*** Custom Variables
-
-- ~ai-code-use-gptel-headline~: Whether to use GPTel to generate headlines (default nil).
-- ~ai-code-prompt-suffix~: Suffix text for prompts (default nil).
-- ~ai-code-prompt-file-name~: Name of the prompt file (default ".ai.code.prompt.org").
+4.  *The Prompt File*:
+    Use `M-x ai-code-open-prompt-file` to open or create `.ai.code.prompt.org` at the root of your Git repository. This file is an Org-mode buffer where you can write, edit, and manage your prompts. Press `C-c C-c` (`ai-code-prompt-send-block`) on a block of text to send it directly to the AI.
 
 ** Dependencies
 
 *** Required Dependencies
 - Emacs 26.1 or later
-- ~org~: Org-mode support
-- ~magit~: Git integration
-- ~transient~: Menu system
+- `org`: Org-mode support
+- `magit`: Git integration
+- `transient`: For the menu system
 
 *** Optional Dependencies
-- ~helm~: Enhanced auto-completion functionality
-- ~yasnippet~: Snippet support
-- ~gptel~: Intelligent headline generation
-- ~claude-code.el~: Claude Code integration
-
-** Snippets
-
-Includes a rich set of preset snippets covering:
-- Code generation and refactoring
-- Testing and debugging
-- Documentation writing
-- Architecture design
-- Performance optimization
-- Security review
-
-** Extension and Customization
-
-You can extend the functionality in the following ways:
-1. Add custom snippets to the ~snippets/ai-prompt-mode/~ directory.
-2. Customize AI command aliases.
-3. Integrate other AI programming tools.
-
-** Troubleshooting
-
-- Ensure you are in a Git repository.
-- Check that Magit and related dependencies are installed correctly.
-- Verify that the AI tool (e.g., Claude Code) is configured correctly.
+- `helm`: For an enhanced auto-completion experience (`ai-code-input.el`).
+- `yasnippet`: For snippet support in the prompt file. A library of snippets is included.
+- `gptel`: For intelligent, AI-generated headlines in the prompt file.
+- `flycheck`: To enable the `ai-code-flycheck-fix-errors-in-scope` command.
 
 ** License
 
@@ -167,4 +138,4 @@ Apache-2.0 License
 
 ** Contributing
 
-Contributions, issue reports, and improvement suggestions are welcome!
+Contributions, issue reports, and improvement suggestions are welcome! Please open an issue or submit a pull request on the project's GitHub repository.
