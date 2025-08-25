@@ -110,9 +110,9 @@ Otherwise implement comments for the entire current file."
                       function-name files-context-string))
              (t
               (format "Please implement all TODO in-place in file '%s'. The TODO are TODO comments. Keep the existing code structure and only implement these marked items.%s"
-                      (file-name-nondirectory buffer-file-name) files-context-string)))))
+                      (file-name-nondirectory buffer-file-name) files-context-string))))
            (prompt (ai-code-read-string "TODO implementation instruction: " initial-input)))
-      (ai-code--insert-prompt prompt)))
+      (ai-code--insert-prompt prompt))))
 
 ;;; Flycheck integration
 (defun ai-code-flycheck--get-errors-in-scope (start end)

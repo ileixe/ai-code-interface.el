@@ -1,40 +1,12 @@
 * AI Code Interface
 
-An Emacs interface for AI-assisted software development, designed to integrate seamlessly with your coding workflow. The purpose is to provide a uniform interface and experience for different AI backend.
+An Emacs interface for AI-assisted software development, designed to integrate seamlessly with AI-driven agile development workflow. The purpose is to provide a uniform interface and experience for different AI backend.
 
-- Current it support
+- Current it support these two backends:
   - Claude Code
   - Gemini CLI
 
-** Overview
-
-`ai-code-interface` is a comprehensive Emacs package that connects your development environment to various AI coding assistants. It provides a rich set of interactive commands to facilitate a wide range of software engineering tasks, from writing and refactoring code to analyzing Git history and following agile methodologies like Test-Driven Development (TDD).
-
-The core philosophy is to keep you in the editor, leveraging AI to augment your skills without disrupting your flow. It achieves this through deep integration with popular Emacs packages like Magit, Org-mode, Flycheck, and Helm.
-
-** Key Features
-
-- *Interactive AI Chat*: Start an interactive session with an AI assistant in a dedicated Emacs buffer.
-- *Context-Aware Prompting*: Automatically include relevant context in your prompts, such as file paths, selected code regions, or the current function.
-- *Code Manipulation*:
-  - *Change Code*: Request changes to the current function or a selected region.
-  - *Implement TODOs*: Automatically generate code to fulfill `TODO` comments.
-  - *Explain Code*: Get explanations for a symbol, line, function, file, or selected region.
-  - *Fix Errors*: Use `Flycheck` integration to automatically generate fixes for reported errors.
-- *Agile Development*:
-  - *TDD Cycle*: A guided workflow for the Red-Green-Refactor cycle of Test-Driven Development.
-  - *Refactoring*: Apply common refactoring techniques (e.g., Extract Method, Rename Variable) with AI assistance.
-- *Git & Magit Integration*:
-  - *Review Diffs*: Generate and review diffs for commits, branches, or staged changes.
-  - *Analyze History*: Use `git blame` and `git log` output to get AI-powered insights into code evolution and contributor patterns.
-  - *Transient Menus*: Access AI commands directly from the Magit interface.
-- *Prompt Management*:
-  - *Prompt File*: Use a dedicated `.ai.code.prompt.org` file to manage and reuse prompts.
-  - *Snippets*: Leverage `yasnippet` for a library of predefined, reusable prompts.
-- *Usability Enhancements*:
-  - *Transient Menu*: A clean, organized menu (`C-c a`) for easy command discovery.
-  - *Helm/Completing-Read*: Enhanced input completion with history.
-  - *Clipboard Utilities*: Easily copy file paths (formatted for AI prompts) and open clipboard paths in Dired.
+- Lots of feature and tool ported from [[https://github.com/tninja/aider.el][aider.el]], if you like the feature in aider.el, but wish to switch to Claude Code or Gemini CLI, this package is for you.
 
 ** Installation
 
@@ -111,12 +83,38 @@ The core philosophy is to keep you in the editor, leveraging AI to augment your 
     Press `C-c a` to open the main transient menu, which provides access to all major features.
 
 3.  *Typical Workflows*:
+    - *Changing Code*: Position the cursor on a function or select a region of code. Press `C-c a`, then `c` (`ai-code-code-change`). Describe the change you want to make in the prompt. The AI will receive the context of the function or region and your instruction.
+    - *Implementing a TODO*: Write a comment in your code, like `;; TODO: Implement caching for this function`. Place your cursor on that line and press `C-c a`, then `i` (`ai-code-implement-todo`). The AI will generate the implementation based on the comment.
     - *Asking a Question*: Place your cursor within a function, press `C-c a`, then `q` (`ai-code-ask-question`), type your question, and press Enter. The question, along with context, will be sent to the AI.
     - *Refactoring a Function*: With the cursor in a function, press `C-c a`, then `r` (`ai-code-refactor-book-method`). Select a refactoring technique from the list, provide any required input (e.g., a new method name), and the prompt will be generated.
     - *Reviewing a Pull Request*: Press `C-c a`, then `v` (`ai-code-pull-or-review-diff-file`). Choose to generate a diff between two branches. The diff will be created in a new buffer, and you'll be prompted to start a review.
 
 4.  *The Prompt File*:
     Use `M-x ai-code-open-prompt-file` to open or create `.ai.code.prompt.org` at the root of your Git repository. This file is an Org-mode buffer where you can write, edit, and manage your prompts. Press `C-c C-c` (`ai-code-prompt-send-block`) on a block of text to send it directly to the AI.
+
+** Key Features
+
+- *Interactive AI Chat*: Start an interactive session with an AI assistant in a dedicated Emacs buffer.
+- *Context-Aware Prompting*: Automatically include relevant context in your prompts, such as file paths, selected code regions, or the current function.
+- *Code Manipulation*:
+  - *Change Code*: Request changes to the current function or a selected region.
+  - *Implement TODOs*: Automatically generate code to fulfill `TODO` comments.
+  - *Explain Code*: Get explanations for a symbol, line, function, file, or selected region.
+  - *Fix Errors*: Use `Flycheck` integration to automatically generate fixes for reported errors.
+- *Agile Development*:
+  - *TDD Cycle*: A guided workflow for the Red-Green-Refactor cycle of Test-Driven Development.
+  - *Refactoring*: Apply common refactoring techniques (e.g., Extract Method, Rename Variable) with AI assistance.
+- *Git & Magit Integration*:
+  - *Review Diffs*: Generate and review diffs for commits, branches, or staged changes.
+  - *Analyze History*: Use `git blame` and `git log` output to get AI-powered insights into code evolution and contributor patterns.
+  - *Transient Menus*: Access AI commands directly from the Magit interface.
+- *Prompt Management*:
+  - *Prompt File*: Use a dedicated `.ai.code.prompt.org` file to manage and reuse prompts.
+  - *Snippets*: Leverage `yasnippet` for a library of predefined, reusable prompts.
+- *Usability Enhancements*:
+  - *Transient Menu*: A clean, organized menu (`C-c a`) for easy command discovery.
+  - *Helm/Completing-Read*: Enhanced input completion with history.
+  - *Clipboard Utilities*: Easily copy file paths (formatted for AI prompts) and open clipboard paths in Dired.
 
 ** Dependencies
 
