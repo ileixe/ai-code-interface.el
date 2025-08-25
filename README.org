@@ -29,14 +29,14 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 *** Backend Configuration
     This package acts as a generic interface that requires a backend AI assistant package to function. You can configure it to work with different backends.
 
-**** `claude-code.el` (Default)
+**** claude-code.el (Default)
     It is designed to work out-of-the-box with `claude-code.el`.
 
     First, ensure you have `claude-code.el` installed and configured. You can get it from https://github.com/stevemolitor/claude-code.el.
 
     `ai-code-interface` will automatically use it, as it defaults to aliasing its core functions to `claude-code.el`'s functions.
 
-**** `gemini-cli.el`
+**** gemini-cli.el
     To use `gemini-cli.el` as the backend, first install it from https://github.com/linchen2chris/gemini-cli.el.
 
     Then, add the following configuration to your Emacs setup to override the defaults:
@@ -48,7 +48,7 @@ An Emacs interface for AI-assisted software development, designed to integrate s
       (defalias 'ai-code-cli-send-command #'gemini-cli-send-command))
     #+end_src
 
-**** `claude-code-ide.el`
+**** claude-code-ide.el
     To use `claude-code-ide.el` as the backend, first install it from https://github.com/manzaltu/claude-code-ide.el.
 
     Then, add the following configuration to your Emacs setup:
