@@ -21,6 +21,10 @@
 (defun ai-code-ask-question (arg)
   "Generate prompt to ask questions about specific code.
 With a prefix argument (\M-x), prompt for a question without adding any context.
+If current buffer is a file, keep existing logic.
+If current buffer is a dired buffer:
+  - If there are files or directories marked, use them as context (use git repo relative path, start with @ character)
+  - If there are no files or dirs marked, but under cursor there is file or dir, use it as context of prompt
 If a region is selected, ask about that specific region.
 If cursor is in a function, ask about that function.
 Otherwise, ask a general question about the file.
@@ -31,30 +35,74 @@ Argument ARG is the prefix argument."
   (if arg
       (let ((question (ai-code-read-string "Ask question (no context): " "")))
         (ai-code--insert-prompt question))
-    (let* ((function-name (which-function))
-           (region-active (region-active-p))
-           (region-text (when region-active
-                          (buffer-substring-no-properties (region-beginning) (region-end))))
-           (prompt-label
-            (cond
-             (region-active
-              (if function-name
-                  (format "Question about selected code in function %s: " function-name)
-                "Question about selected code: "))
-             (function-name
-              (format "Question about function %s: " function-name))
-             (t "General question: ")))
-           (question (ai-code-read-string prompt-label ""))
-           (files-context-string (ai-code--get-context-files-string))
-           (final-prompt
-            (concat question
-                    (when region-text
-                      (concat "\n" region-text))
-                    (when function-name
-                      (format "\nFunction: %s" function-name))
-                    files-context-string
-                    "\nNote: This is a question only - please do not modify the code.")))
-      (ai-code--insert-prompt final-prompt))))
+    (cond
+     ;; Handle dired buffer
+     ((eq major-mode 'dired-mode)
+      (ai-code--ask-question-dired))
+     ;; Handle regular file buffer
+     (t (ai-code--ask-question-file)))))
+
+(defun ai-code--ask-question-dired ()
+  "Handle ask question for dired buffer."
+  (let* ((all-marked (dired-get-marked-files))
+         (file-at-point (dired-get-filename nil t))
+         (truly-marked (remove file-at-point all-marked))
+         (has-marks (> (length truly-marked) 0))
+         (context-files (cond
+                         (has-marks truly-marked)
+                         (file-at-point (list file-at-point))
+                         (t nil)))
+         (git-relative-files (when context-files
+                              (ai-code--get-git-relative-paths context-files)))
+         (files-context-string (when git-relative-files
+                                (concat "\nFiles:\n" 
+                                       (mapconcat (lambda (f) (concat "@" f)) 
+                                                 git-relative-files "\n"))))
+         (prompt-label (cond
+                        (has-marks "Question about marked files/directories: ")
+                        (file-at-point (format "Question about %s: " (file-name-nondirectory file-at-point)))
+                        (t "General question about directory: ")))
+         (question (ai-code-read-string prompt-label ""))
+         (final-prompt (concat question files-context-string
+                              "\nNote: This is a question only - please do not modify the code.")))
+    (ai-code--insert-prompt final-prompt)))
+
+(defun ai-code--ask-question-file ()
+  "Handle ask question for regular file buffer."
+  (let* ((function-name (which-function))
+         (region-active (region-active-p))
+         (region-text (when region-active
+                        (buffer-substring-no-properties (region-beginning) (region-end))))
+         (prompt-label
+          (cond
+           (region-active
+            (if function-name
+                (format "Question about selected code in function %s: " function-name)
+              "Question about selected code: "))
+           (function-name
+            (format "Question about function %s: " function-name))
+           (t "General question: ")))
+         (question (ai-code-read-string prompt-label ""))
+         (files-context-string (ai-code--get-context-files-string))
+         (final-prompt
+          (concat question
+                  (when region-text
+                    (concat "\n" region-text))
+                  (when function-name
+                    (format "\nFunction: %s" function-name))
+                  files-context-string
+                  "\nNote: This is a question only - please do not modify the code.")))
+    (ai-code--insert-prompt final-prompt)))
+
+(defun ai-code--get-git-relative-paths (file-paths)
+  "Convert absolute file paths to git repository relative paths.
+Returns a list of relative paths from the git repository root."
+  (when file-paths
+    (let ((git-root (magit-toplevel)))
+      (when git-root
+        (mapcar (lambda (file-path)
+                  (file-relative-name file-path git-root))
+                file-paths)))))
 
 ;;;###autoload
 (defun ai-code-investigate-exception (arg)
@@ -99,13 +147,43 @@ Argument ARG is the prefix argument."
 ;;;###autoload
 (defun ai-code-explain ()
   "Generate prompt to explain code at different levels.
+If current buffer is a dired buffer and under cursor is a directory or file, explain that directory or file using relative path as context (start with @ character).
 If a region is selected, explain that specific region using function/file as context.
 Otherwise, prompt user to select scope: symbol, line, function, or file.
 Inserts the prompt into the AI prompt file and optionally sends to AI."
   (interactive)
-  (if (region-active-p)
-      (ai-code--explain-region)
-    (ai-code--explain-with-scope-selection)))
+  (cond
+   ;; Handle dired buffer
+   ((eq major-mode 'dired-mode)
+    (ai-code--explain-dired))
+   ;; Handle region selection
+   ((region-active-p)
+    (ai-code--explain-region))
+   ;; Handle regular file buffer
+   (t (ai-code--explain-with-scope-selection))))
+
+(defun ai-code--explain-dired ()
+  "Handle explain for dired buffer."
+  (let* ((file-at-point (dired-get-filename nil t))
+         (git-relative-path (when file-at-point
+                             (car (ai-code--get-git-relative-paths (list file-at-point)))))
+         (files-context-string (when git-relative-path
+                                (concat "\nFiles:\n@" git-relative-path)))
+         (file-type (if (and file-at-point (file-directory-p file-at-point))
+                       "directory"
+                     "file"))
+         (initial-prompt (if git-relative-path
+                            (format "Please explain the %s at path @%s.\n\nProvide a clear explanation of what this %s contains, its purpose, and its role in the project structure.%s"
+                                   file-type 
+                                   git-relative-path 
+                                   file-type
+                                   (or files-context-string ""))
+                          "No file or directory found at cursor point."))
+         (final-prompt (if git-relative-path
+                          (ai-code-read-string "Prompt: " initial-prompt)
+                        initial-prompt)))
+    (when final-prompt
+      (ai-code--insert-prompt final-prompt))))
 
 (defun ai-code--explain-region ()
   "Explain the selected region with function/file context."
