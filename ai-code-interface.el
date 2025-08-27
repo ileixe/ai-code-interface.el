@@ -215,6 +215,7 @@ and runs it in a compilation buffer."
     ("c" "Code change (C-u: global)" ai-code-code-change)
     ("i" "Implement TODO" ai-code-implement-todo)
     ("q" "Ask question (C-u: global)" ai-code-ask-question)
+    ("x" "Explain code" ai-code-explain)
     ("<SPC>" "Send command to AI" ai-code-send-command)
     ]
    ["AI Agile Development"
@@ -228,7 +229,6 @@ and runs it in a compilation buffer."
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name (C-u: full path)" ai-code-copy-buffer-file-name-to-clipboard)
     ("o" "Open Clipboard file dir" ai-code-open-clipboard-file-path-as-dired)
-    ("x" "Explain code" ai-code-explain)
     ]
    ])
 
