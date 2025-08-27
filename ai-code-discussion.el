@@ -81,6 +81,8 @@ Argument ARG is the prefix argument."
               "Question about selected code: "))
            (function-name
             (format "Question about function %s: " function-name))
+           (buffer-file-name
+            (format "General question about %s: " (file-name-nondirectory buffer-file-name)))
            (t "General question: ")))
          (question (ai-code-read-string prompt-label ""))
          (files-context-string (ai-code--get-context-files-string))
