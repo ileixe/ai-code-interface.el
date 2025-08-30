@@ -133,7 +133,7 @@ Argument ARG is the prefix argument."
               (format "Investigate exceptions in function %s: " function-name))
              (t "Investigate exceptions in code: ")))
            (initial-prompt (ai-code-read-string prompt-label
-                                                "How to fix the error in this code? Please analyze the error, explain the root cause, and provide the corrected code to resolve the issue."))
+                                                "How to fix the error in this code? Please analyze the error, explain the root cause, and provide the corrected code to resolve the issue: "))
            (files-context-string (ai-code--get-context-files-string))
            (final-prompt
             (concat initial-prompt
@@ -143,8 +143,8 @@ Argument ARG is the prefix argument."
                     (concat "\n\nNote: Please focus on how to fix the error. Your response should include:\n"
                             "1. A brief explanation of the root cause of the error.\n"
                             "2. A code snippet with the fix.\n"
-                            "3. An explanation of how the fix addresses the error.")))
-      (ai-code--insert-prompt final-prompt)))))
+                            "3. An explanation of how the fix addresses the error."))))
+      (ai-code--insert-prompt final-prompt))))
 
 ;;;###autoload
 (defun ai-code-explain ()
