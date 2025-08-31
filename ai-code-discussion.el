@@ -109,23 +109,28 @@ Returns a list of relative paths from the git repository root."
 ;;;###autoload
 (defun ai-code-investigate-exception (arg)
   "Generate prompt to investigate exceptions or errors in code.
-With a prefix argument (C-u), prompt for investigation without adding any context.
+With a prefix argument (C-u), or if not in a programming mode buffer,
+prompt for investigation without adding any context.
 If a region is selected, investigate that specific error or exception.
 If cursor is in a function, investigate exceptions in that function.
 Otherwise, investigate general exception handling in the file.
 Inserts the prompt into the AI prompt file and optionally sends to AI.
 Argument ARG is the prefix argument."
   (interactive "P")
-  (let ((region-text (when (region-active-p)
-                       (buffer-substring-no-properties (region-beginning) (region-end)))))
-    (if arg
-        (let* ((initial-prompt (if region-text
+  (let* ((region-text (when (region-active-p)
+                        (buffer-substring-no-properties (region-beginning) (region-end))))
+         (function-name (which-function))
+         (files-context-string (ai-code--get-context-files-string)))
+    (if (or arg (not (derived-mode-p 'prog-mode)))
+        (let* ((initial-prompt (if (and region-text (not (derived-mode-p 'prog-mode)))
                                    (concat "Investigate the exception and fix the code:\n\n" region-text)
-                                 ""))
-               (prompt (ai-code-read-string "Investigate exception (no context): " initial-prompt)))
-          (ai-code--insert-prompt prompt))
-      (let* ((function-name (which-function))
-             (prompt-label
+                                 (or region-text "")))
+               (prompt (ai-code-read-string "Investigate exception (no context): " initial-prompt))
+               (final-prompt (concat prompt
+                                     (when function-name (format "\nFunction: %s" function-name))
+                                     files-context-string)))
+          (ai-code--insert-prompt final-prompt))
+      (let* ((prompt-label
               (cond
                (region-text
                 (if function-name
@@ -136,7 +141,6 @@ Argument ARG is the prefix argument."
                (t "Investigate exceptions in code: ")))
              (initial-prompt (ai-code-read-string prompt-label
                                                   (or region-text "How to fix the error in this code? Please analyze the error, explain the root cause, and provide the corrected code to resolve the issue: ")))
-             (files-context-string (ai-code--get-context-files-string))
              (final-prompt
               (concat initial-prompt
                       (when region-text (concat "\n\nSelected code:\n" region-text))
@@ -147,6 +151,9 @@ Argument ARG is the prefix argument."
                               "2. A code snippet with the fix.\n"
                               "3. An explanation of how the fix addresses the error."))))
         (ai-code--insert-prompt final-prompt)))))
+
+
+
 
 ;;;###autoload
 (defun ai-code-explain ()
