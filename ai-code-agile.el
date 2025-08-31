@@ -237,23 +237,33 @@ TDD refactor stage."
 
 (defun ai-code--tdd-red-stage (function-name)
   "Handle the Red stage of TDD for FUNCTION-NAME: Write a failing test."
-  (let* ((current-buffer-name (buffer-name))
-         (is-test-buffer (string-match-p "test" current-buffer-name))
-         (initial-input
-          (if function-name
-              (format "Write test for function '%s' in corresponding test code file: " function-name)
-            "Write a failing test for this feature: "))
-         (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
-         (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
-         (file-info (ai-code--get-context-files-string))
-         (tdd-instructions
-          (if is-test-buffer
-              ;; Keep TDD instructions for test buffers
-              (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code."
-                      feature-desc file-info)
-            ;; For non-test buffers, just use feature-desc
-            (format "%s%s%s" feature-desc function-info file-info))))
-    (ai-code--insert-prompt tdd-instructions)))
+  (if (and (region-active-p) (not (derived-mode-p 'prog-mode)))
+      ;; If there is a selected region, and it is not a prog-mode derived buffer,
+      ;; assume this is the information / exception of failed test.
+      ;; Use it as initial prompt to fix the source code.
+      (let* ((failure-info (buffer-substring-no-properties (region-beginning) (region-end)))
+             (prompt (ai-code-read-string "Confirm test failure to fix: " failure-info))
+             (file-info (ai-code--get-context-files-string))
+             (tdd-instructions (format "Fix the code to resolve the following error:\n%s%s" prompt file-info)))
+        (ai-code--insert-prompt tdd-instructions))
+    ;; Original path: write a failing test
+    (let* ((current-buffer-name (buffer-name))
+           (is-test-buffer (string-match-p "test" current-buffer-name))
+           (initial-input
+            (if function-name
+                (format "Write test for function '%s' in corresponding test code file: " function-name)
+              "Write a failing test for this feature: "))
+           (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
+           (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
+           (file-info (ai-code--get-context-files-string))
+           (tdd-instructions
+            (if is-test-buffer
+                ;; Keep TDD instructions for test buffers
+                (format "%s%s\nFollow TDD principles - write only the test now, not the implementation. The test should fail when run because the functionality doesn't exist yet. Only update test file code." feature-desc file-info)
+              ;; For non-test buffers, just use feature-desc
+              (format "%s%s%s" feature-desc function-info file-info))))
+      (ai-code--insert-prompt tdd-instructions))))
+
 
 (defun ai-code--tdd-green-stage (function-name)
   "Handle the Green stage of TDD for FUNCTION-NAME: Make the test pass.
