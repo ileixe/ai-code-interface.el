@@ -152,9 +152,6 @@ Argument ARG is the prefix argument."
                               "3. An explanation of how the fix addresses the error."))))
         (ai-code--insert-prompt final-prompt)))))
 
-
-
-
 ;;;###autoload
 (defun ai-code-explain ()
   "Generate prompt to explain code at different levels.
