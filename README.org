@@ -2,14 +2,18 @@
 
 An Emacs interface for AI-assisted software development, designed to integrate seamlessly with *AI-driven agile development workflow*. The purpose is to provide a uniform interface and experience for different AI backend.
 
-- Current it support these two backends:
-  - Claude Code
-  - Gemini CLI
-  - OpenAI Codex CLI
+- Current it support these AI coding CLI:
+  - [[https://github.com/anthropics/claude-code][Claude Code]]
+  - [[https://github.com/google-gemini/gemini-cli][Gemini CLI]]
+  - [[https://github.com/openai/codex][OpenAI Codex]]
 
 - I use different CLI based AI tool in emacs: Claude Code / Gemini CLI / Aider. If you also use different AI tools inside emacs, but want to keep same user interface and experience, this package is for you.
 
 - Lots of feature and tool ported from [[https://github.com/tninja/aider.el][aider.el]], if you like the feature in aider.el, but wish to switch to Claude Code or Gemini CLI, this package is also for you.
+
+- Screenshot
+
+[[./transient_menu.png]]
 
 ** Installation
 
@@ -44,11 +48,12 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 
     Then, add the following configuration to your Emacs setup to override the defaults:
     #+begin_src emacs-lisp
-    (with-eval-after-load 'ai-code-interface
-      (require 'gemini-cli)
-      (defalias 'ai-code-cli-start #'gemini-cli-mode)
-      (defalias 'ai-code-cli-switch-to-buffer #'gemini-cli-switch-to-buffer)
-      (defalias 'ai-code-cli-send-command #'gemini-cli-send-command))
+      (with-eval-after-load 'ai-code-interface
+        (require 'gemini-cli)
+        (defalias 'ai-code-cli-start #'gemini-cli-mode)
+        (defalias 'ai-code-cli-switch-to-buffer #'gemini-cli-switch-to-buffer)
+        (defalias 'ai-code-cli-send-command #'gemini-cli-send-command)
+        (setq ai-code-cli "gemini"))
     #+end_src
 
 **** claude-code-ide.el
