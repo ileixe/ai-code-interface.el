@@ -253,7 +253,7 @@ TDD refactor stage."
             (if function-name
                 (format "Write test for function '%s' in corresponding test code file: " function-name)
               "Write a failing test for this feature: "))
-           (feature-desc (ai-code-read-string "Describe the feature to test: " initial-input))
+           (feature-desc (ai-code-read-string "Describe the feature to test: " nil (list initial-input)))
            (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
            (file-info (ai-code--get-context-files-string))
            (tdd-instructions
@@ -277,7 +277,7 @@ If current file is a test file (contains 'test' in name), provide prompt to fix 
             (if function-name
                 (format "Implement function '%s' to make tests pass: " function-name)
               "Implement the minimal code needed to make the failing test pass: ")))
-         (implementation-desc (ai-code-read-string "Implementation instruction: " initial-input))
+         (implementation-desc (ai-code-read-string "Implementation instruction: " nil (list initial-input)))
          (function-info (format "\nCurrent function: %s" (or function-name "unknown function")))
          (file-info (ai-code--get-context-files-string))
          (tdd-instructions
