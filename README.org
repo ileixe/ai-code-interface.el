@@ -65,7 +65,7 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 
     You can adapt this pattern for other AI assistant packages by changing the functions in the `defalias` calls.
 
-**** OpenAI codex CLI
+**** [[https://github.com/openai/codex][OpenAI codex CLI]]
 
     Then, add the following configuration to your Emacs setup:
     #+begin_src emacs-lisp
