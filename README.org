@@ -64,6 +64,17 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 
     You can adapt this pattern for other AI assistant packages by changing the functions in the `defalias` calls.
 
+**** OpenAI codex CLI
+
+    Then, add the following configuration to your Emacs setup:
+    #+begin_src emacs-lisp
+      (with-eval-after-load 'ai-code-interface
+        (require 'ai-code-codex-cli)
+        (defalias 'ai-code-cli-start #'codex-cli)
+        (defalias 'ai-code-cli-switch-to-buffer #'codex-cli-switch-to-buffer)
+        (defalias 'ai-code-cli-send-command #'codex-cli-send-command))
+    #+end_src
+
 *** Main Entry Point
     Press `C-c a` to open the main transient menu, which provides access to all major features.
 
