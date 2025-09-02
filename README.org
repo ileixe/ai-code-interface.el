@@ -5,6 +5,7 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 - Current it support these two backends:
   - Claude Code
   - Gemini CLI
+  - OpenAI Codex CLI
 
 - I use different CLI based AI tool in emacs: Claude Code / Gemini CLI / Aider. If you also use different AI tools inside emacs, but want to keep same user interface and experience, this package is for you.
 
