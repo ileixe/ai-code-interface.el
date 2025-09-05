@@ -28,6 +28,7 @@
 (declare-function ai-code-cli-start "ai-code-backends")
 (declare-function ai-code-cli-switch-to-buffer "ai-code-backends")
 (declare-function ai-code-cli-send-command "ai-code-backends" (command))
+(declare-function ai-code-current-backend-label "ai-code-backends")
 
 (declare-function ai-code--process-word-for-filepath "ai-code-prompt-mode" (word git-root-truename))
 
@@ -205,6 +206,11 @@ and runs it in a compilation buffer."
       (quit-window)
     (ai-code-cli-switch-to-buffer)))
 
+(defun ai-code--select-backend-description (&rest _)
+  "Dynamic description for the Select Backend menu item.
+Shows the current backend label to the right."
+  (format "Select Backend (%s)" (ai-code-current-backend-label)))
+
 ;;;###autoload
 (transient-define-prefix ai-code-menu ()
   "Transient menu for AI Code Interface interactive functions."
@@ -212,7 +218,7 @@ and runs it in a compilation buffer."
    ["AI CLI session"
     ("a" "Start AI CLI" ai-code-cli-start)
     ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer-or-hide)
-    ("s" "Select Backend" ai-code-select-backend)
+    ("s" ai-code--select-backend-description ai-code-select-backend)
     ("p" "Open prompt file" ai-code-open-prompt-file)
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
     ]

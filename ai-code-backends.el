@@ -15,29 +15,29 @@
 
 ;;;###autoload
 (defcustom ai-code-backends
-  '((claude
-     :label "Claude Code (claude-code.el)"
+  '((claude-code
+     :label "claude-code.el"
      :require claude-code
      :start   claude-code
      :switch  claude-code-switch-to-buffer
      :send    claude-code-send-command
      :cli     "claude")
-    (claude-ide
-     :label "Claude Code IDE (claude-code-ide.el)"
+    (claude-code-ide
+     :label "claude-code-ide.el"
      :require claude-code-ide
      :start   claude-code-ide--start-if-no-session
      :switch  claude-code-ide-switch-to-buffer
      :send    claude-code-ide-send-prompt
      :cli     "claude")
     (gemini
-      :label "Gemini CLI (gemini-cli.el)"
+      :label "gemini-cli.el"
       :require gemini-cli
       :start   gemini-cli
       :switch  gemini-cli-switch-to-buffer
       :send    gemini-cli-send-command
       :cli     "gemini")
     (codex
-     :label "OpenAI Codex CLI (ai-code-codex-cli.el)"
+     :label "ai-code-codex-cli.el"
      :require ai-code-codex-cli
      :start   codex-cli
      :switch  codex-cli-switch-to-buffer
@@ -54,12 +54,19 @@ Each entry is (KEY :label STRING :require FEATURE :start FN :switch FN :send FN 
                        (const :cli) (string :tag "CLI name")))
   :group 'ai-code)
 
-(defvar ai-code-selected-backend 'claude
+(defvar ai-code-selected-backend 'claude-code
   "Currently selected backend key from `ai-code-backends'.")
 
 (defun ai-code--backend-spec (key)
   "Return backend plist for KEY from `ai-code-backends'."
   (seq-find (lambda (it) (eq (car it) key)) ai-code-backends))
+
+(defun ai-code-current-backend-label ()
+  "Return label string of the currently selected backend.
+Falls back to symbol name when label is unavailable."
+  (let* ((spec (ai-code--backend-spec ai-code-selected-backend))
+         (label (when spec (plist-get (cdr spec) :label))))
+    (or label (and ai-code-selected-backend (symbol-name ai-code-selected-backend)) "<none>")))
 
 (defun ai-code--ensure-backend-loaded (spec)
   "Ensure FEATURE for backend SPEC is loaded, if any."
@@ -104,4 +111,3 @@ Sets `ai-code-cli-*' defaliases and updates `ai-code-cli'."
 (provide 'ai-code-backends)
 
 ;;; ai-code-backends.el ends here
-
