@@ -13,7 +13,9 @@
 (require 'which-func)
 (require 'magit)
 (require 'transient)
+(require 'seq)
 
+(require 'ai-code-backends)
 (require 'ai-code-input)
 (require 'ai-code-prompt-mode)
 (require 'ai-code-agile)
@@ -21,12 +23,14 @@
 (require 'ai-code-change)
 (require 'ai-code-discussion)
 
+;; Forward declarations for dynamically defined backend functions
+(declare-function ai-code-cli-start "ai-code-backends")
+(declare-function ai-code-cli-switch-to-buffer "ai-code-backends")
+(declare-function ai-code-cli-send-command "ai-code-backends" (command))
+
 (declare-function ai-code--process-word-for-filepath "ai-code-prompt-mode" (word git-root-truename))
 
-(defalias 'ai-code-cli-start #'claude-code)
-(defalias 'ai-code-cli-switch-to-buffer #'claude-code-switch-to-buffer)
-(defalias 'ai-code-cli-send-command #'claude-code-send-command)
-
+;; Default aliases are set when a backend is applied via `ai-code-select-backend`.
 
 ;;;###autoload
 (defcustom ai-code-use-gptel-headline nil
@@ -207,9 +211,9 @@ and runs it in a compilation buffer."
    ["AI CLI session"
     ("a" "Start AI CLI" ai-code-cli-start)
     ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer-or-hide)
+    ("s" "Select Backend" ai-code-select-backend)
     ("p" "Open prompt file" ai-code-open-prompt-file)
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
-    ("|" "Apply prompt on file" ai-code-apply-prompt-on-current-file)
     ]
    ["AI Code Actions"
     ("c" "Code change (C-u: global)" ai-code-code-change)
@@ -229,6 +233,7 @@ and runs it in a compilation buffer."
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
     ("k" "Copy Buffer File Name (C-u: full path)" ai-code-copy-buffer-file-name-to-clipboard)
     ("o" "Open Clipboard file dir" ai-code-open-clipboard-file-path-as-dired)
+    ("|" "Apply prompt on file" ai-code-apply-prompt-on-current-file)
     ]
    ])
 

@@ -36,6 +36,17 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 *** Backend Configuration
     This package acts as a generic interface that requires a backend AI assistant package to function. You can configure it to work with different backends.
 
+**** Interactive selection (recommended)
+    - Press `C-c a` to open the AI menu, then `s` to "Select Backend".
+    - Pick one of the supported backends and the integration will switch immediately.
+    - The selection updates the start/switch/send commands and the CLI used by `ai-code-apply-prompt-on-current-file`.
+
+    Supported options:
+    - Claude Code (`claude-code.el`)
+    - Claude Code IDE (`claude-code-ide.el`)
+    - Gemini CLI (`gemini-cli.el`)
+    - OpenAI Codex CLI (`ai-code-codex-cli.el`)
+
 **** claude-code.el (Default)
     It is designed to work out-of-the-box with `claude-code.el`.
 
@@ -50,7 +61,7 @@ An Emacs interface for AI-assisted software development, designed to integrate s
     #+begin_src emacs-lisp
       (with-eval-after-load 'ai-code-interface
         (require 'gemini-cli)
-        (defalias 'ai-code-cli-start #'gemini-cli-mode)
+        (defalias 'ai-code-cli-start #'gemini-cli)
         (defalias 'ai-code-cli-switch-to-buffer #'gemini-cli-switch-to-buffer)
         (defalias 'ai-code-cli-send-command #'gemini-cli-send-command)
         (setq ai-code-cli "gemini"))
