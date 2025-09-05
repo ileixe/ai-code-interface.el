@@ -82,12 +82,19 @@ Sets `ai-code-cli-*' defaliases and updates `ai-code-cli'."
       (user-error "Unknown backend: %s" key))
     (ai-code--ensure-backend-loaded spec)
     (let* ((plist (cdr spec))
+           (label  (plist-get plist :label))
+           (feature (plist-get plist :require))
            (start  (plist-get plist :start))
            (switch (plist-get plist :switch))
            (send   (plist-get plist :send))
            (cli    (plist-get plist :cli)))
+      ;; If the declared feature is not available after require, inform user to install it.
+      (when (and feature (not (featurep feature)))
+        (user-error "Backend '%s' is not available. Please install the package providing '%s' and try again."
+                    label (symbol-name feature)))
       (unless (and (fboundp start) (fboundp switch) (fboundp send))
-        (user-error "Backend '%s' is not available (missing functions)" (car spec)))
+        (user-error "Backend '%s' is not available (missing functions). Please install the package providing '%s'."
+                    label (symbol-name feature)))
       (defalias 'ai-code-cli-start start)
       (defalias 'ai-code-cli-switch-to-buffer switch)
       (defalias 'ai-code-cli-send-command send)
