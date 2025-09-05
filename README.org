@@ -36,61 +36,17 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 *** Backend Configuration
     This package acts as a generic interface that requires a backend AI assistant package to function. You can configure it to work with different backends.
 
-**** Interactive selection (recommended)
-    - Press `C-c a` to open the AI menu, then `s` to "Select Backend".
-    - Pick one of the supported backends and the integration will switch immediately.
-    - The selection updates the start/switch/send commands and the CLI used by `ai-code-apply-prompt-on-current-file`.
+   - Press `C-c a` to open the AI menu, then `s` to "Select Backend".
+   - Pick one of the supported backends and the integration will switch immediately.
+   - The selection updates the start/switch/send commands and the CLI used by `ai-code-apply-prompt-on-current-file`.
 
-    Supported options:
-    - Claude Code (`claude-code.el`)
-    - Claude Code IDE (`claude-code-ide.el`)
-    - Gemini CLI (`gemini-cli.el`)
-    - OpenAI Codex CLI (`ai-code-codex-cli.el`)
+   Supported options:
+   - Claude Code (`[[https://github.com/stevemolitor/claude-code.el][claude-code.el]]`)
+   - Claude Code IDE (`[[https://github.com/manzaltu/claude-code-ide.el][claude-code-ide.el]]`)
+   - Gemini CLI (`[[https://github.com/linchen2chris/gemini-cli.el][gemini-cli.el]]`)
+   - [[https://github.com/openai/codex][OpenAI codex CLI]] (`[[./ai-code-codex-cli.el][ai-code-codex-cli.el]]`)
 
-**** claude-code.el (Default)
-    It is designed to work out-of-the-box with `claude-code.el`.
-
-    First, ensure you have `claude-code.el` installed and configured. You can get it from https://github.com/stevemolitor/claude-code.el.
-
-    `ai-code-interface` will automatically use it, as it defaults to aliasing its core functions to `claude-code.el`'s functions.
-
-**** gemini-cli.el
-    To use `gemini-cli.el` as the backend, first install it from https://github.com/linchen2chris/gemini-cli.el.
-
-    Then, add the following configuration to your Emacs setup to override the defaults:
-    #+begin_src emacs-lisp
-      (with-eval-after-load 'ai-code-interface
-        (require 'gemini-cli)
-        (defalias 'ai-code-cli-start #'gemini-cli)
-        (defalias 'ai-code-cli-switch-to-buffer #'gemini-cli-switch-to-buffer)
-        (defalias 'ai-code-cli-send-command #'gemini-cli-send-command)
-        (setq ai-code-cli "gemini"))
-    #+end_src
-
-**** claude-code-ide.el
-    To use `claude-code-ide.el` as the backend, first install it from https://github.com/manzaltu/claude-code-ide.el.
-
-    Then, add the following configuration to your Emacs setup:
-    #+begin_src emacs-lisp
-      (with-eval-after-load 'ai-code-interface
-        (require 'claude-code-ide)
-        (defalias 'ai-code-cli-start #'claude-code-ide--start-if-no-session)
-        (defalias 'ai-code-cli-switch-to-buffer #'claude-code-ide-switch-to-buffer)
-        (defalias 'ai-code-cli-send-command #'claude-code-ide-send-prompt))
-    #+end_src
-
-    You can adapt this pattern for other AI assistant packages by changing the functions in the `defalias` calls.
-
-**** [[https://github.com/openai/codex][OpenAI codex CLI]]
-
-    Then, add the following configuration to your Emacs setup:
-    #+begin_src emacs-lisp
-      (with-eval-after-load 'ai-code-interface
-        (require 'ai-code-codex-cli)
-        (defalias 'ai-code-cli-start #'codex-cli)
-        (defalias 'ai-code-cli-switch-to-buffer #'codex-cli-switch-to-buffer)
-        (defalias 'ai-code-cli-send-command #'codex-cli-send-command))
-    #+end_src
+   You can add other backends by customizing the `ai-code-backends` variable.
 
 *** Main Entry Point
     Press `C-c a` to open the main transient menu, which provides access to all major features.
