@@ -236,9 +236,9 @@ Shows the current backend label to the right."
     ("!" "Run Current File" ai-code-run-current-file)
     ]
    ["Other Tools"
-    ("e" "Investigate exception (C-u: global)" ai-code-investigate-exception)
+    ("e" "Debug exception (C-u: global)" ai-code-investigate-exception)
     ("f" "Fix Flycheck errors in scope" ai-code-flycheck-fix-errors-in-scope)
-    ("k" "Copy Buffer File Name (C-u: full path)" ai-code-copy-buffer-file-name-to-clipboard)
+    ("k" "Copy Cur File Name (C-u: full)" ai-code-copy-buffer-file-name-to-clipboard)
     ("o" "Open Clipboard file dir" ai-code-open-clipboard-file-path-as-dired)
     ("|" "Apply prompt on file" ai-code-apply-prompt-on-current-file)
     ]
