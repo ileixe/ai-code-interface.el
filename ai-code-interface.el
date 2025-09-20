@@ -1,7 +1,7 @@
 ;;; ai-code-interface.el --- AI code interface for editing AI prompt files -*- lexical-binding: t; -*-
 
 ;; Author: Kang Tu <tninja@gmail.com>
-;; Version: 0.14
+;; Version: 0.15
 ;; Package-Requires: ((emacs "26.1") (transient "0.8.0") (magit "2.1.0"))
 
 ;; SPDX-License-Identifier: Apache-2.0
@@ -50,6 +50,11 @@ headlines instead of using the current time string."
 If non-nil, this text will be appended to the end of each prompt
 with a newline separator."
   :type '(choice (const nil) string)
+  :group 'ai-code)
+
+(defcustom ai-code-use-prompt-suffix t
+  "When non-nil, append `ai-code-prompt-suffix` where supported."
+  :type 'boolean
   :group 'ai-code)
 
 ;;;###autoload
@@ -182,9 +187,9 @@ sed \"1i <prompt>: \" <file> | <ai-code-cli>
 and runs it in a compilation buffer."
   (interactive)
   (let* ((prompt (ai-code-read-string "Prompt: "))
-         (prompt-with-suffix (if ai-code-prompt-suffix
+         (prompt-with-suffix (if (and ai-code-use-prompt-suffix ai-code-prompt-suffix)
                                  (concat prompt ", " ai-code-prompt-suffix)
-                               prompt))
+                                 prompt))
          (file-name (cond
                      ((eq major-mode 'dired-mode)
                       (dired-get-filename))
@@ -208,6 +213,20 @@ and runs it in a compilation buffer."
       (quit-window)
     (ai-code-cli-switch-to-buffer)))
 
+(defclass ai-code--use-prompt-suffix-type (transient-lisp-variable)
+  ((variable :initform 'ai-code-use-prompt-suffix)
+   (format :initform "%k %d %v")
+   (reader :initform #'transient-lisp-variable--read-value))
+  "Toggle helper for `ai-code-use-prompt-suffix`.")
+
+(transient-define-infix ai-code--infix-toggle-suffix ()
+  "Toggle `ai-code-use-prompt-suffix`."
+  :class 'ai-code--use-prompt-suffix-type
+  :key "^"
+  :description "Use prompt suffix:"
+  :reader (lambda (_prompt _initial-input _history)
+            (not ai-code-use-prompt-suffix)))
+
 (defun ai-code--select-backend-description (&rest _)
   "Dynamic description for the Select Backend menu item.
 Shows the current backend label to the right."
@@ -226,6 +245,7 @@ Shows the current backend label to the right."
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
     ]
    ["AI Code Actions"
+    (ai-code--infix-toggle-suffix)
     ("c" "Code change (C-u: global)" ai-code-code-change)
     ("i" "Implement TODO" ai-code-implement-todo)
     ("q" "Ask question (C-u: global)" ai-code-ask-question)

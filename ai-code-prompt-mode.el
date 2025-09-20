@@ -18,6 +18,7 @@
 
 (defvar ai-code-use-gptel-headline)
 (defvar ai-code-prompt-suffix)
+(defvar ai-code-use-prompt-suffix)
 
 (declare-function yas-load-directory "yasnippet" (dir))
 (declare-function yas-minor-mode "yasnippet")
@@ -163,9 +164,9 @@ Returns the full prompt text with suffix for sending to AI."
 
 (defun ai-code--write-prompt-to-file-and-send (prompt-text)
   "Write PROMPT-TEXT to the AI prompt file."
-  (let* ((full-prompt (if ai-code-prompt-suffix
-                          (concat prompt-text "\n" ai-code-prompt-suffix "\n")
-                        prompt-text))
+  (let* ((full-prompt (concat (if (and ai-code-use-prompt-suffix ai-code-prompt-suffix)
+                                  (concat prompt-text "\n" ai-code-prompt-suffix)
+                                prompt-text) "\n"))
          (prompt-file (ai-code--get-ai-code-prompt-file-path)))
     (if prompt-file
       (let ((buffer (ai-code--get-prompt-buffer prompt-file)))
@@ -175,7 +176,6 @@ Returns the full prompt text with suffix for sending to AI."
           (message "Prompt added to %s" prompt-file)
           (ai-code--send-prompt full-prompt)))
       (ai-code--send-prompt full-prompt))))
-
 
 (defun ai-code--process-word-for-filepath (word git-root-truename)
   "Process a single WORD, converting it to relative path with @ prefix if it's a file path."
