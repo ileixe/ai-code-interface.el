@@ -23,8 +23,7 @@ An Emacs interface for AI-assisted software development, designed to integrate s
   (use-package ai-code-interface
     :straight (:host github :repo "tninja/ai-code-interface.el")
     :config
-    (setq ai-code-selected-backend 'claude-code-ide) ;; use claude-code-ide as backend
-    (ai-code--apply-backend ai-code-selected-backend) ;; apply above change
+    (ai-code-set-backend  'claude-code-ide) ;; use claude-code-ide as backend
     ;; Enable global keybinding for the main menu
     (global-set-key (kbd "C-c a") #'ai-code-menu)
     ;; Optional: Set up Magit integration for AI commands in Magit popups

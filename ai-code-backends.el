@@ -57,6 +57,12 @@ Each entry is (KEY :label STRING :require FEATURE :start FN :switch FN :send FN 
 (defvar ai-code-selected-backend 'claude-code
   "Currently selected backend key from `ai-code-backends'.")
 
+(defun ai-code-set-backend (new-backend)
+  (unless (ai-code--backend-spec new-backend)
+    (user-error "Unknown backend: %s" new-backend))
+  (setq ai-code-selected-backend new-backend)
+  (ai-code--apply-backend new-backend))
+
 (defun ai-code--backend-spec (key)
   "Return backend plist for KEY from `ai-code-backends'."
   (seq-find (lambda (it) (eq (car it) key)) ai-code-backends))
@@ -113,7 +119,7 @@ Sets `ai-code-cli-*' defaliases and updates `ai-code-cli'."
                           ai-code-backends))
          (choice (completing-read "Select backend: " (mapcar #'car choices) nil t))
          (key (cdr (assoc choice choices))))
-    (ai-code--apply-backend key)))
+    (ai-code-set-backend key)))
 
 (provide 'ai-code-backends)
 
