@@ -240,7 +240,7 @@ Shows the current backend label to the right."
     ("a" "Start AI CLI" ai-code-cli-start)
     ("z" "Switch to AI CLI" ai-code-cli-switch-to-buffer-or-hide)
     ("s" ai-code--select-backend-description ai-code-select-backend)
-    ("g" "Open backend config" ai-code-open-backend-config)
+    ("g" "Open backend config (eg. add mcp)" ai-code-open-backend-config)
     ("p" "Open prompt file" ai-code-open-prompt-file)
     ("b" "Send prompt block to AI" ai-code-prompt-send-block)
     ]
