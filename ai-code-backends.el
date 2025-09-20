@@ -21,6 +21,7 @@
      :start   claude-code
      :switch  claude-code-switch-to-buffer
      :send    claude-code-send-command
+     :config  "~/.claude.json"
      :cli     "claude")
     (claude-code-ide
      :label "claude-code-ide.el"
@@ -28,6 +29,7 @@
      :start   claude-code-ide--start-if-no-session
      :switch  claude-code-ide-switch-to-buffer
      :send    claude-code-ide-send-prompt
+     :config  "~/.claude.json"
      :cli     "claude")
     (gemini
       :label "gemini-cli.el"
@@ -35,6 +37,7 @@
       :start   gemini-cli
       :switch  gemini-cli-switch-to-buffer
       :send    gemini-cli-send-command
+      :config  "~/.gemini/settings.json"
       :cli     "gemini")
     (codex
      :label "ai-code-codex-cli.el"
@@ -42,6 +45,7 @@
      :start   codex-cli
      :switch  codex-cli-switch-to-buffer
      :send    codex-cli-send-command
+     :config  "~/.codex/config.toml"
      :cli     "codex"))
   "Available AI backends and how to integrate with them.
 Each entry is (KEY :label STRING :require FEATURE :start FN :switch FN :send FN :cli STRING)."
@@ -120,6 +124,23 @@ Sets `ai-code-cli-*' defaliases and updates `ai-code-cli'."
          (choice (completing-read "Select backend: " (mapcar #'car choices) nil t))
          (key (cdr (assoc choice choices))))
     (ai-code-set-backend key)))
+
+;;;###autoload
+(defun ai-code-open-backend-config ()
+  "Open the current backend's configuration file in another window."
+  (interactive)
+  (let* ((spec (ai-code--backend-spec ai-code-selected-backend)))
+    (unless spec
+      (user-error "No backend is currently selected."))
+    (let* ((plist  (cdr spec))
+           (label  (or (plist-get plist :label)
+                       (symbol-name ai-code-selected-backend)))
+           (config (plist-get plist :config)))
+      (unless config
+        (user-error "Backend '%s' does not declare a config file." label))
+      (let ((file (expand-file-name config)))
+        (find-file-other-window file)
+        (message "Opened %s config: %s" label file)))))
 
 (provide 'ai-code-backends)
 
