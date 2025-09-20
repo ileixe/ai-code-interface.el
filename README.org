@@ -20,15 +20,16 @@ An Emacs interface for AI-assisted software development, designed to integrate s
 *** Using straight.el (Recommended)
 
 #+begin_src emacs-lisp
-(use-package ai-code-interface
-  :straight (:host github :repo "tninja/ai-code-interface.el")
-  :config
-  ;; Enable global keybinding for the main menu
-  (global-set-key (kbd "C-c a") #'ai-code-menu)
-  
-  ;; Optional: Set up Magit integration for AI commands in Magit popups
-  (with-eval-after-load 'magit
-    (ai-code-magit-setup-transients)))
+  (use-package ai-code-interface
+    :straight (:host github :repo "tninja/ai-code-interface.el")
+    :config
+    (setq ai-code-selected-backend 'claude-code-ide) ;; use claude-code-ide as backend
+    (ai-code--apply-backend ai-code-selected-backend) ;; apply above change
+    ;; Enable global keybinding for the main menu
+    (global-set-key (kbd "C-c a") #'ai-code-menu)
+    ;; Optional: Set up Magit integration for AI commands in Magit popups
+    (with-eval-after-load 'magit
+      (ai-code-magit-setup-transients)))
 #+end_src
 
 ** Usage
