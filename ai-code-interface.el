@@ -67,8 +67,11 @@ with a newline separator."
 (defun ai-code-send-command ()
   "Read a prompt from the user and send it to the AI service."
   (interactive)
-  (when-let ((prompt (ai-code-read-string "Send to AI: ")))
-    (ai-code--insert-prompt prompt)))
+  (let ((initial-input (when (use-region-p)
+                         (buffer-substring-no-properties (region-beginning)
+                                                         (region-end)))))
+    (when-let ((prompt (ai-code-read-string "Send to AI: " initial-input)))
+      (ai-code--insert-prompt prompt))))
 
 ;;;###autoload
 (defun ai-code-copy-buffer-file-name-to-clipboard (&optional arg)
