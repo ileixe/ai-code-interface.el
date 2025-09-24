@@ -9,6 +9,11 @@
 
 (require 'claude-code)
 
+(declare-function claude-code--start "claude-code" (arg extra-switches &optional force-prompt force-switch-to-buffer))
+(declare-function claude-code--term-send-string "claude-code" (backend string))
+(defvar claude-code-terminal-backend)
+
+
 (defgroup ai-code-codex-cli nil
   "Codex CLI integration via `claude-code'."
   :group 'tools
@@ -38,6 +43,16 @@
   (claude-code-send-command line))
 
 
+;;;###autoload
+(defun codex-cli-resume (&optional arg)
+  "Resume a previous Codex CLI session."
+  (interactive "P")
+  (let ((claude-code-program codex-cli-program)
+        (claude-code-program-switches nil))
+    (claude-code--start arg '("resume") nil t)
+    (claude-code--term-send-string claude-code-terminal-backend "")
+    (with-current-buffer claude-code-terminal-backend
+      (goto-char (point-min)))))
 (provide 'ai-code-codex-cli)
 
 ;;; ai-code-codex-cli.el ends here

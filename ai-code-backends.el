@@ -13,6 +13,16 @@
 
 (defvar ai-code-cli)
 
+(defun ai-code--unsupported-resume (&optional _arg)
+  (interactive "P")
+  (user-error "Backend '%s' does not support resume" (ai-code-current-backend-label)))
+
+;;;###autoload
+(defun ai-code-cli-resume (&optional arg)
+  "Resume the current backend's CLI session when supported."
+  (interactive "P")
+  (ai-code--unsupported-resume arg))
+
 ;;;###autoload
 (defcustom ai-code-backends
   '((claude-code
@@ -21,6 +31,7 @@
      :start   claude-code
      :switch  claude-code-switch-to-buffer
      :send    claude-code-send-command
+     :resume  claude-code-resume
      :config  "~/.claude.json"
      :cli     "claude")
     (claude-code-ide
@@ -29,6 +40,7 @@
      :start   claude-code-ide--start-if-no-session
      :switch  claude-code-ide-switch-to-buffer
      :send    claude-code-ide-send-prompt
+     :resume  claude-code-ide-resume
      :config  "~/.claude.json"
      :cli     "claude")
     (gemini
@@ -37,6 +49,7 @@
       :start   gemini-cli
       :switch  gemini-cli-switch-to-buffer
       :send    gemini-cli-send-command
+      :resume  nil
       :config  "~/.gemini/settings.json"
       :cli     "gemini")
     (codex
@@ -45,16 +58,18 @@
      :start   codex-cli
      :switch  codex-cli-switch-to-buffer
      :send    codex-cli-send-command
+     :resume  codex-cli-resume
      :config  "~/.codex/config.toml"
      :cli     "codex"))
   "Available AI backends and how to integrate with them.
-Each entry is (KEY :label STRING :require FEATURE :start FN :switch FN :send FN :cli STRING)."
+Each entry is (KEY :label STRING :require FEATURE :start FN :switch FN :send FN :resume FN-or-nil :cli STRING)."
   :type '(repeat (list (symbol :tag "Key")
                        (const :label) (string :tag "Label")
                        (const :require) (symbol :tag "Feature to require")
                        (const :start) (symbol :tag "Start function")
                        (const :switch) (symbol :tag "Switch function")
                        (const :send) (symbol :tag "Send function")
+                       (const :resume) (choice (symbol :tag "Resume function") (const :tag "Not supported" nil))
                        (const :cli) (string :tag "CLI name")))
   :group 'ai-code)
 
@@ -97,6 +112,7 @@ Sets `ai-code-cli-*' defaliases and updates `ai-code-cli'."
            (start  (plist-get plist :start))
            (switch (plist-get plist :switch))
            (send   (plist-get plist :send))
+           (resume (plist-get plist :resume))
            (cli    (plist-get plist :cli)))
       ;; If the declared feature is not available after require, inform user to install it.
       (when (and feature (not (featurep feature)))
@@ -108,6 +124,16 @@ Sets `ai-code-cli-*' defaliases and updates `ai-code-cli'."
       (defalias 'ai-code-cli-start start)
       (defalias 'ai-code-cli-switch-to-buffer switch)
       (defalias 'ai-code-cli-send-command send)
+      (when (and resume (not (fboundp resume)))
+        (user-error "Backend '%s' declares resume function '%s' but it is not callable."
+                    label (symbol-name resume)))
+      (if resume
+          (fset 'ai-code-cli-resume
+                (lambda (&optional arg)
+                  (interactive "P")
+                  (let ((current-prefix-arg arg))
+                    (call-interactively resume))))
+        (fset 'ai-code-cli-resume #'ai-code--unsupported-resume))
       (setq ai-code-cli cli
             ai-code-selected-backend key)
       (message "AI Code backend switched to: %s" (plist-get plist :label)))))
